@@ -1,23 +1,27 @@
-# Build (Vite)
-FROM node:20-alpine AS build
+# ---------- Build (Vite) em Debian p/ evitar problemas do musl ----------
+FROM node:20-bookworm-slim AS build
+ENV NODE_ENV=production \
+    npm_config_fund=false \
+    npm_config_audit=false
 WORKDIR /app
 
-# deps do sistema p/ alguns pacotes (esbuild/sharp/etc)
-RUN apk add --no-cache libc6-compat python3 make g++
+# Dependências de sistema leves para possíveis bindings (se houver)
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends python3 make g++ ca-certificates curl git \
+ && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci
-# força baixar o binário correto do esbuild p/ Alpine (musl)
-RUN npm rebuild esbuild
+RUN npm ci --no-audit --no-fund
 
-COPY . .
 # Valor padrão; pode ser sobrescrito via build-arg
 ARG VITE_API_BASE="https://api.xml.lojasrealce.shop"
 ENV VITE_API_BASE=${VITE_API_BASE}
-# logs mais verbosos ajudam a diagnosticar
-RUN npm run build --silent || npm run build --verbose
 
-# Runtime (Nginx)
+COPY . .
+# Build com logs; se falhar, mostra mais detalhes
+RUN npm run build || npm run build --verbose
+
+# ---------- Runtime (Nginx Alpine) ----------
 FROM nginx:alpine
 WORKDIR /
 COPY --from=build /app/dist /usr/share/nginx/html
