@@ -4,6 +4,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Labels para GitHub Container Registry
+LABEL org.opencontainers.image.source=https://github.com/pedroojr/xml-importer-v3.1
+LABEL org.opencontainers.image.description="XML Importer API - Node.js backend"
+LABEL org.opencontainers.image.licenses=MIT
+
 # Dependências em produção
 COPY package*.json ./
 RUN npm ci --omit=dev
