@@ -4,19 +4,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# Se precisar apontar a API em build, passe: --build-arg VITE_API_BASE=https://api.xml.lojasrealce.shop
-ARG VITE_API_BASE
-ENV VITE_API_BASE=$VITE_API_BASE
+# Valor padrão; pode ser sobrescrito com --build-arg VITE_API_BASE=...
+ARG VITE_API_BASE="https://api.xml.lojasrealce.shop"
+ENV VITE_API_BASE=${VITE_API_BASE}
 RUN npm run build
 
 # Runtime (Nginx)
 FROM nginx:alpine
-
-# Labels para GitHub Container Registry
-LABEL org.opencontainers.image.source=https://github.com/pedroojr/xml-importer-v3.1
-LABEL org.opencontainers.image.description="XML Importer Web - React frontend"
-LABEL org.opencontainers.image.licenses=MIT
-
 WORKDIR /
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
