@@ -1,0 +1,81 @@
+name: CI/CD (build API+WEB → GHCR → Deploy opcional)
+
+on:
+  push:
+    branches: [ "main" ]
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_API: ghcr.io/${{ github.repository }}-api
+      IMAGE_WEB: ghcr.io/${{ github.repository }}-web
+      TAG_LATEST: latest
+      TAG_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # API (server/)
+      - name: Build & Push API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_API }}:${{ env.TAG_LATEST }}
+            ${{ env.IMAGE_API }}:${{ env.TAG_SHA }}
+          cache-from: type=registry,ref=${{ env.IMAGE_API }}:cache
+          cache-to: type=registry,ref=${{ env.IMAGE_API }}:cache,mode=max
+
+      # WEB (raiz com Dockerfile.web)
+      - name: Build & Push WEB
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          tags: |
+            ${{ env.IMAGE_WEB }}:${{ env.TAG_LATEST }}
+            ${{ env.IMAGE_WEB }}:${{ env.TAG_SHA }}
+          cache-from: type=registry,ref=${{ env.IMAGE_WEB }}:cache
+          cache-to: type=registry,ref=${{ env.IMAGE_WEB }}:cache,mode=max
+          # build-args: |
+          #   VITE_API_BASE=https://api.xml.lojasrealce.shop
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VPS_HOST && secrets.VPS_USER && secrets.VPS_SSH_KEY }}
+    steps:
+      - name: Deploy to VPS (compose pull/up)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/realce-xml
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            docker compose pull
+            docker compose up -d
+            docker image prune -f
