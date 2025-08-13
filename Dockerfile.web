@@ -1,13 +1,21 @@
 # Build (Vite)
 FROM node:20-alpine AS build
 WORKDIR /app
+
+# deps do sistema p/ alguns pacotes (esbuild/sharp/etc)
+RUN apk add --no-cache libc6-compat python3 make g++
+
 COPY package*.json ./
 RUN npm ci
+# força baixar o binário correto do esbuild p/ Alpine (musl)
+RUN npm rebuild esbuild
+
 COPY . .
-# Valor padrão; pode ser sobrescrito com --build-arg VITE_API_BASE=...
+# Valor padrão; pode ser sobrescrito via build-arg
 ARG VITE_API_BASE="https://api.xml.lojasrealce.shop"
 ENV VITE_API_BASE=${VITE_API_BASE}
-RUN npm run build
+# logs mais verbosos ajudam a diagnosticar
+RUN npm run build --silent || npm run build --verbose
 
 # Runtime (Nginx)
 FROM nginx:alpine
