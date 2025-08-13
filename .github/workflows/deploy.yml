@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency:
   group: prod-deploy
   cancel-in-progress: true
@@ -14,6 +18,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     env:
       REGISTRY: ghcr.io
       IMAGE_API: ghcr.io/${{ github.repository }}-api
@@ -64,6 +69,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Skip deploy (secrets ausentes)
         if: ${{ !secrets.VPS_HOST || !secrets.VPS_USER || !secrets.VPS_SSH_KEY }}
@@ -79,7 +87,7 @@ jobs:
           script: |
             set -e
             cd /srv/realce-xml
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull
             docker compose up -d
             docker image prune -f
