@@ -1,0 +1,16 @@
+# Node
+node_modules
+dist
+
+# Git/CI
+.git
+.github
+
+# Server (não entra no Dockerfile da Web)
+server
+
+# Diversos
+*.log
+*.md
+Dockerfile
+Dockerfile.web~
