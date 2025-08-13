@@ -1,35 +1,25 @@
-# ---------- Build (Vite) em Debian ----------
+# ---------- Build (Vite) ----------
 FROM node:20-bookworm-slim AS build
 ENV NODE_ENV=production \
     npm_config_fund=false \
     npm_config_audit=false
 WORKDIR /app
-
-# deps nativas para eventuais bindings
 RUN apt-get update -y \
  && apt-get install -y --no-install-recommends python3 make g++ ca-certificates curl git \
  && rm -rf /var/lib/apt/lists/*
-
-# instale deps primeiro (cache melhor)
-COPY xml-importer-v3.1/package*.json ./
+COPY package*.json ./
 RUN npm ci --no-audit --no-fund
-
-# arg/variável com fallback
 ARG VITE_API_BASE="https://api.xml.lojasrealce.shop"
 ENV VITE_API_BASE=${VITE_API_BASE}
-
-# copie o resto do código (COM prefixo de pasta)
-COPY xml-importer-v3.1/ .
-# build do Vite; se falhar, tente com verbose
+COPY . .
 RUN npm run build || npm run build --verbose
 
-# ---------- Runtime (Nginx Alpine) ----------
+# ---------- Runtime (Nginx) ----------
 FROM nginx:alpine
 WORKDIR /
-# copie o build gerado
 COPY --from=build /app/dist /usr/share/nginx/html
-# copie sua config do Nginx (do contexto xml-importer-v3.1)
-COPY xml-importer-v3.1/nginx.conf /etc/nginx/conf.d/default.conf
+# ATENÇÃO: caminho SEM prefixo
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN apk add --no-cache curl
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 CMD curl -fsS http://localhost || exit 1
