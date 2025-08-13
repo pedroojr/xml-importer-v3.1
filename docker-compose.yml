@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-pedroojr/xml-importer-v3.1}-api:latest
+    container_name: xml-importer-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - xml-importer-network
+
+  web:
+    image: ghcr.io/${GITHUB_REPOSITORY:-pedroojr/xml-importer-v3.1}-web:latest
+    container_name: xml-importer-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - xml-importer-network
+
+networks:
+  xml-importer-network:
+    driver: bridge

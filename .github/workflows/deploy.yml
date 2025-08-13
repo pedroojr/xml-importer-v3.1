@@ -38,6 +38,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug - Show registry info
+        run: |
+          echo "Registry: ${{ env.REGISTRY }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "API Image: ${{ env.IMAGE_API }}"
+          echo "WEB Image: ${{ env.IMAGE_WEB }}"
+
+      - name: Test GHCR connectivity
+        run: |
+          echo "Testing connectivity to GHCR..."
+          docker pull hello-world
+          docker tag hello-world ${{ env.REGISTRY }}/${{ github.repository }}-test:latest || true
+          docker push ${{ env.REGISTRY }}/${{ github.repository }}-test:latest || echo "Push test failed, but continuing..."
+
       # API (server/)
       - name: Build & Push API
         uses: docker/build-push-action@v6
