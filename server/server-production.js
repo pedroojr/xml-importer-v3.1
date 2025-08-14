@@ -132,18 +132,22 @@ app.use((req, res, next) => {
 // GET - Listar todas as NFEs
 app.get('/api/nfes', (req, res) => {
   try {
-    const stmt = db.prepare(`
-      SELECT 
-        n.*,
-        COUNT(p.id) as produtosCount,
-        SUM(p.valorTotal) as valorTotal
-      FROM nfes n
-      LEFT JOIN produtos p ON n.id = p.nfeId
-      GROUP BY n.id
-      ORDER BY n.createdAt DESC
-    `);
-    const nfes = stmt.all();
-    res.json(nfes);
+    // Primeiro buscar todas as NFEs
+    const nfesStmt = db.prepare('SELECT * FROM nfes ORDER BY createdAt DESC');
+    const nfes = nfesStmt.all();
+    
+    // Para cada NFE, buscar seus produtos
+    const nfesComProdutos = nfes.map(nfe => {
+      const produtosStmt = db.prepare('SELECT * FROM produtos WHERE nfeId = ?');
+      const produtos = produtosStmt.all(nfe.id);
+      
+      return {
+        ...nfe,
+        produtos
+      };
+    });
+    
+    res.json(nfesComProdutos);
   } catch (error) {
     console.error('Erro ao buscar NFEs:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
