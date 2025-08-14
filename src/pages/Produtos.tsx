@@ -87,7 +87,10 @@ const Produtos = () => {
       
       if (nfe.produtos && Array.isArray(nfe.produtos)) {
         // Mapear produtos da API para o formato esperado pelos componentes
+        console.log('🔍 Primeiro produto antes do mapeamento:', nfe.produtos[0]);
+        
         const mappedProducts = mapApiProductsToComponents(nfe.produtos);
+        console.log('🔍 Primeiro produto após mapeamento:', mappedProducts[0]);
         
         const nfeProdutos = mappedProducts.map(produto => ({
           ...produto,
@@ -105,6 +108,9 @@ const Produtos = () => {
     });
     
     console.log('🎯 Total de produtos processados:', products.length);
+    if (products.length > 0) {
+      console.log('🔍 Exemplo de produto processado:', products[0]);
+    }
     return products;
   }, [nfes]);
 
