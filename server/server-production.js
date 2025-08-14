@@ -182,6 +182,9 @@ app.post('/api/nfes', (req, res) => {
   try {
     const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
     
+    // Calcular número de itens automaticamente se não fornecido
+    const numeroItens = itens || (produtos && Array.isArray(produtos) ? produtos.length : 0);
+    
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
@@ -203,7 +206,7 @@ app.post('/api/nfes', (req, res) => {
     db.transaction(() => {
       // Inserir/atualizar NFE
       insertNFE.run(
-        id, data, numero, chaveNFE, fornecedor, valor, itens,
+        id, data, numero, chaveNFE, fornecedor, valor, numeroItens,
         impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
         roundingType || 'none', valorFrete || 0
       );
