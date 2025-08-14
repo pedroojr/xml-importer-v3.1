@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Building2, Calendar, Package2, Receipt, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/utils/formatters';
+import { mapApiProductsToComponents } from '@/utils/productMapper';
 
 interface Produto {
   id: number;
@@ -76,6 +77,12 @@ const NFEView = () => {
         const data = await response.json();
         console.log('✅ NFE carregada:', data);
         console.log('📦 Produtos da NFE:', data.produtos?.length || 0);
+        
+        // Mapear produtos da API para o formato esperado
+        if (data.produtos && Array.isArray(data.produtos)) {
+          data.produtos = mapApiProductsToComponents(data.produtos);
+          console.log('🔄 Produtos mapeados para formato de componente');
+        }
         
         setNfe(data);
         

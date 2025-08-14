@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Download, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { mapApiProductsToComponents } from '@/utils/productMapper';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -70,7 +71,7 @@ const Produtos = () => {
     loadNFEs();
   }, []);
 
-  // Extrair todos os produtos das NFEs
+  // Extrair todos os produtos das NFEs e mapear para o formato esperado
   const allProducts = React.useMemo(() => {
     console.log('🔄 Processando produtos das NFEs...');
     
@@ -85,7 +86,10 @@ const Produtos = () => {
       console.log(`📄 NFE ${index + 1}:`, nfe.id, 'produtos:', nfe.produtos?.length);
       
       if (nfe.produtos && Array.isArray(nfe.produtos)) {
-        const nfeProdutos = nfe.produtos.map(produto => ({
+        // Mapear produtos da API para o formato esperado pelos componentes
+        const mappedProducts = mapApiProductsToComponents(nfe.produtos);
+        
+        const nfeProdutos = mappedProducts.map(produto => ({
           ...produto,
           nfeId: nfe.id,
           fornecedor: nfe.fornecedor,
@@ -94,7 +98,7 @@ const Produtos = () => {
         }));
         
         products.push(...nfeProdutos);
-        console.log(`✅ NFE ${nfe.id}: ${nfeProdutos.length} produtos adicionados`);
+        console.log(`✅ NFE ${nfe.id}: ${nfeProdutos.length} produtos mapeados e adicionados`);
       } else {
         console.log(`❌ NFE ${nfe.id}: sem produtos ou produtos inválidos`);
       }

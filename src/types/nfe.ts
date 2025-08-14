@@ -1,4 +1,5 @@
 export interface Product {
+  // Campos da API (principais)
   codigo: string;
   descricao: string;
   ncm: string;
@@ -13,28 +14,35 @@ export interface Product {
   baseCalculoIPI: number;
   valorIPI: number;
   aliquotaIPI: number;
-  xapuriPrice?: number;
-  epitaPrice?: number;
-  code: string;
-  name: string;
   ean?: string;
   reference?: string;
   brand?: string;
-  totalPrice: number;
-  netPrice: number;
-  discount: number;
-  quantity: number;
   imageUrl?: string;
-  tags?: string[];
+  descricao_complementar?: string;
+  freteProporcional?: number;
+  custoExtra?: number;
+  
+  // Aliases para compatibilidade com componentes existentes
+  code: string; // alias para codigo
+  name: string; // alias para descricao
+  uom: string; // alias para unidade
+  quantity: number; // alias para quantidade
+  unitPrice: number; // alias para valorUnitario
+  totalPrice: number; // alias para valorTotal
+  netPrice: number; // calculado
+  discount: number; // calculado
+  
+  // Campos opcionais para funcionalidades avançadas
+  xapuriPrice?: number;
+  epitaPrice?: number;
   salePrice?: number;
-  uom?: string;
   color?: string;
   size?: string;
   fornecedor?: string;
-  descricao_complementar?: string;
-  unitPrice: number;
-  freteProporcional?: number;
-  custoExtra?: number;
+  tags?: string[];
+  
+  // Campos para cálculos
+  impostoEntrada?: number;
 }
 
 export interface NFE {
