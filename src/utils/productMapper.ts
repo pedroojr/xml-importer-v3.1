@@ -4,6 +4,8 @@ import { Product } from '@/types/nfe';
  * Mapeia um produto da API para o formato esperado pelos componentes
  */
 export function mapApiProductToComponent(apiProduct: any): Product {
+  console.log('🔄 Mapeando produto da API:', apiProduct);
+  
   return {
     // Campos da API (principais)
     codigo: apiProduct.codigo || '',
@@ -56,6 +58,7 @@ export function mapApiProductToComponent(apiProduct: any): Product {
  * Mapeia uma lista de produtos da API
  */
 export function mapApiProductsToComponents(apiProducts: any[]): Product[] {
+  console.log('🔄 Mapeando produtos da API:', apiProducts.length);
   return apiProducts.map(mapApiProductToComponent);
 }
 
