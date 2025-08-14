@@ -12,19 +12,47 @@ const Produtos = () => {
   const [currentPage, setCurrentPage] = React.useState(1);
   const { savedNFEs, loading, error } = useNFEStorage();
 
-  console.log('Produtos component render:', { savedNFEs, loading, error });
+  console.log('🔍 Produtos component render:', { 
+    savedNFEs: savedNFEs?.length, 
+    loading, 
+    error,
+    hasNFEs: !!savedNFEs,
+    isArray: Array.isArray(savedNFEs)
+  });
+
+  // Teste direto da API
+  React.useEffect(() => {
+    const testAPI = async () => {
+      try {
+        console.log('🧪 Testando API diretamente...');
+        const response = await fetch('https://xml.lojasrealce.shop/api/nfes');
+        const data = await response.json();
+        console.log('✅ API Response:', data);
+        console.log('📊 Primeira NFE:', data[0]);
+        console.log('🛍️ Produtos da primeira NFE:', data[0]?.produtos?.length);
+      } catch (err) {
+        console.error('❌ Erro ao testar API:', err);
+      }
+    };
+    
+    testAPI();
+  }, []);
 
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
-    console.log('Calculating allProducts from:', savedNFEs);
+    console.log('🔄 Calculando allProducts...');
+    console.log('📦 savedNFEs:', savedNFEs);
+    
     if (!savedNFEs || savedNFEs.length === 0) {
-      console.log('No NFEs found');
+      console.log('⚠️ No NFEs found');
       return [];
     }
     
-    return savedNFEs.reduce((acc: any[], nfe) => {
+    const products = savedNFEs.reduce((acc: any[], nfe) => {
+      console.log('📄 Processando NFE:', nfe.id, 'com produtos:', nfe.produtos?.length);
+      
       if (!nfe.produtos || !Array.isArray(nfe.produtos)) {
-        console.log('NFE without produtos:', nfe);
+        console.log('❌ NFE sem produtos:', nfe.id);
         return acc;
       }
       
@@ -35,11 +63,16 @@ const Produtos = () => {
         dataEmissao: nfe.data,
         impostoEntrada: nfe.impostoEntrada
       }));
+      
+      console.log(`✅ NFE ${nfe.id}: ${nfeProdutos.length} produtos processados`);
       return [...acc, ...nfeProdutos];
     }, []);
+    
+    console.log('🎯 Total de produtos extraídos:', products.length);
+    return products;
   }, [savedNFEs]);
 
-  console.log('allProducts calculated:', allProducts);
+  console.log('📊 allProducts calculated:', allProducts.length);
 
   // Filtrar produtos baseado na busca
   const filteredProducts = React.useMemo(() => {
@@ -144,6 +177,19 @@ const Produtos = () => {
         </div>
       </div>
 
+      {/* Debug Info */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-4">
+          <h3 className="font-medium text-yellow-800 mb-2">🔍 Debug Info</h3>
+          <div className="text-sm text-yellow-700 space-y-1">
+            <p>NFEs carregadas: {savedNFEs?.length || 0}</p>
+            <p>Produtos extraídos: {allProducts.length}</p>
+            <p>Produtos filtrados: {filteredProducts.length}</p>
+            <p>Status: {loading ? 'Carregando...' : error ? 'Erro' : 'OK'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -211,6 +257,10 @@ const Produtos = () => {
           {filteredProducts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">Nenhum produto encontrado</p>
+              <p className="text-sm text-gray-400 mt-2">
+                NFEs: {savedNFEs?.length || 0} | 
+                Produtos extraídos: {allProducts.length}
+              </p>
             </div>
           ) : (
             <div className="space-y-2">
