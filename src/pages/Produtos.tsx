@@ -2,77 +2,107 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { useNFEStorage } from '@/hooks/useNFEStorage';
+import { Search, Filter, Download, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 
 const ITEMS_PER_PAGE = 50;
+
+interface DebugInfo {
+  nfesCount: number;
+  firstNfeId?: string;
+  firstNfeProdutos?: number;
+  apiStatus: string;
+  error?: string;
+}
 
 const Produtos = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
-  const { savedNFEs, loading, error } = useNFEStorage();
-
-  console.log('🔍 Produtos component render:', { 
-    savedNFEs: savedNFEs?.length, 
-    loading, 
-    error,
-    hasNFEs: !!savedNFEs,
-    isArray: Array.isArray(savedNFEs)
+  const [nfes, setNfes] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = React.useState<DebugInfo>({
+    nfesCount: 0,
+    apiStatus: 'Carregando...'
   });
 
-  // Teste direto da API
+  // Carregar NFEs diretamente da API
   React.useEffect(() => {
-    const testAPI = async () => {
+    const loadNFEs = async () => {
       try {
-        console.log('🧪 Testando API diretamente...');
+        setLoading(true);
+        setError(null);
+        
+        console.log('🚀 Carregando NFEs da API...');
         const response = await fetch('https://xml.lojasrealce.shop/api/nfes');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        console.log('✅ API Response:', data);
+        console.log('✅ NFEs carregadas:', data.length);
         console.log('📊 Primeira NFE:', data[0]);
-        console.log('🛍️ Produtos da primeira NFE:', data[0]?.produtos?.length);
+        
+        setNfes(data);
+        
+        // Debug info
+        setDebugInfo({
+          nfesCount: data.length,
+          firstNfeId: data[0]?.id,
+          firstNfeProdutos: data[0]?.produtos?.length || 0,
+          apiStatus: 'OK'
+        });
+        
       } catch (err) {
-        console.error('❌ Erro ao testar API:', err);
+        console.error('❌ Erro ao carregar NFEs:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
+        setDebugInfo({
+          nfesCount: 0,
+          error: errorMessage,
+          apiStatus: 'ERRO'
+        });
+      } finally {
+        setLoading(false);
       }
     };
-    
-    testAPI();
+
+    loadNFEs();
   }, []);
 
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
-    console.log('🔄 Calculando allProducts...');
-    console.log('📦 savedNFEs:', savedNFEs);
+    console.log('🔄 Processando produtos das NFEs...');
     
-    if (!savedNFEs || savedNFEs.length === 0) {
-      console.log('⚠️ No NFEs found');
+    if (!nfes || nfes.length === 0) {
+      console.log('⚠️ Nenhuma NFE encontrada');
       return [];
     }
     
-    const products = savedNFEs.reduce((acc: any[], nfe) => {
-      console.log('📄 Processando NFE:', nfe.id, 'com produtos:', nfe.produtos?.length);
-      
-      if (!nfe.produtos || !Array.isArray(nfe.produtos)) {
-        console.log('❌ NFE sem produtos:', nfe.id);
-        return acc;
-      }
-      
-      const nfeProdutos = nfe.produtos.map(produto => ({
-        ...produto,
-        nfeId: nfe.id,
-        fornecedor: nfe.fornecedor,
-        dataEmissao: nfe.data,
-        impostoEntrada: nfe.impostoEntrada
-      }));
-      
-      console.log(`✅ NFE ${nfe.id}: ${nfeProdutos.length} produtos processados`);
-      return [...acc, ...nfeProdutos];
-    }, []);
+    const products = [];
     
-    console.log('🎯 Total de produtos extraídos:', products.length);
+    nfes.forEach((nfe, index) => {
+      console.log(`📄 NFE ${index + 1}:`, nfe.id, 'produtos:', nfe.produtos?.length);
+      
+      if (nfe.produtos && Array.isArray(nfe.produtos)) {
+        const nfeProdutos = nfe.produtos.map(produto => ({
+          ...produto,
+          nfeId: nfe.id,
+          fornecedor: nfe.fornecedor,
+          dataEmissao: nfe.data,
+          impostoEntrada: nfe.impostoEntrada
+        }));
+        
+        products.push(...nfeProdutos);
+        console.log(`✅ NFE ${nfe.id}: ${nfeProdutos.length} produtos adicionados`);
+      } else {
+        console.log(`❌ NFE ${nfe.id}: sem produtos ou produtos inválidos`);
+      }
+    });
+    
+    console.log('🎯 Total de produtos processados:', products.length);
     return products;
-  }, [savedNFEs]);
-
-  console.log('📊 allProducts calculated:', allProducts.length);
+  }, [nfes]);
 
   // Filtrar produtos baseado na busca
   const filteredProducts = React.useMemo(() => {
@@ -106,6 +136,10 @@ const Produtos = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleRetry = () => {
+    window.location.reload();
   };
 
   // Estatísticas dos produtos
@@ -153,9 +187,18 @@ const Produtos = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">Erro ao carregar produtos: {error}</p>
-          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Erro ao carregar produtos</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-y-2">
+            <Button onClick={handleRetry} className="w-full">
+              Tentar novamente
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = '/'} className="w-full">
+              Voltar ao início
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -178,14 +221,17 @@ const Produtos = () => {
       </div>
 
       {/* Debug Info */}
-      <Card className="bg-yellow-50 border-yellow-200">
+      <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-4">
-          <h3 className="font-medium text-yellow-800 mb-2">🔍 Debug Info</h3>
-          <div className="text-sm text-yellow-700 space-y-1">
-            <p>NFEs carregadas: {savedNFEs?.length || 0}</p>
+          <h3 className="font-medium text-blue-800 mb-2">🔍 Informações de Debug</h3>
+          <div className="text-sm text-blue-700 space-y-1">
+            <p>NFEs carregadas: {nfes.length}</p>
             <p>Produtos extraídos: {allProducts.length}</p>
             <p>Produtos filtrados: {filteredProducts.length}</p>
-            <p>Status: {loading ? 'Carregando...' : error ? 'Erro' : 'OK'}</p>
+            <p>Status da API: {debugInfo.apiStatus}</p>
+            {debugInfo.firstNfeId && (
+              <p>Primeira NFE: {debugInfo.firstNfeId} ({debugInfo.firstNfeProdutos} produtos)</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -227,7 +273,7 @@ const Produtos = () => {
             <CardTitle className="text-sm font-medium">NFEs Importadas</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{savedNFEs?.length || 0}</div>
+            <div className="text-2xl font-bold">{nfes.length}</div>
             <p className="text-xs text-muted-foreground">Notas fiscais</p>
           </CardContent>
         </Card>
@@ -258,9 +304,14 @@ const Produtos = () => {
             <div className="text-center py-8">
               <p className="text-gray-500">Nenhum produto encontrado</p>
               <p className="text-sm text-gray-400 mt-2">
-                NFEs: {savedNFEs?.length || 0} | 
+                NFEs: {nfes.length} | 
                 Produtos extraídos: {allProducts.length}
               </p>
+              {allProducts.length === 0 && nfes.length > 0 && (
+                <p className="text-sm text-orange-600 mt-2">
+                  ⚠️ As NFEs não possuem produtos ou os produtos não foram extraídos corretamente
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
