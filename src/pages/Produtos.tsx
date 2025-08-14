@@ -3,39 +3,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react";
-import { ProductTable } from '@/components/product-preview/ProductTable';
-import { getDefaultColumns } from '@/components/product-preview/types/column';
 import { useNFEStorage } from '@/hooks/useNFEStorage';
-import { useLocation } from 'react-router-dom';
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
-import { useProductSettings } from '@/hooks/useProductSettings';
 
 const ITEMS_PER_PAGE = 50;
 
 const Produtos = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [currentPage, setCurrentPage] = React.useState(1);
-  const location = useLocation();
-  const { savedNFEs } = useNFEStorage();
+  const { savedNFEs, loading, error } = useNFEStorage();
 
-  // Usando o novo hook para gerenciar as configurações
-  const {
-    settings,
-    toggleHiddenItem,
-    toggleVisibleColumn,
-    updateMarkup,
-    updateRoundingType,
-    updateImpostoEntrada,
-    toggleShowOnlyWithImage,
-    toggleShowOnlyHidden
-  } = useProductSettings({
-    visibleColumns: new Set(getDefaultColumns().map(col => col.id))
-  });
+  console.log('Produtos component render:', { savedNFEs, loading, error });
 
   // Extrair todos os produtos das NFEs
   const allProducts = React.useMemo(() => {
+    console.log('Calculating allProducts from:', savedNFEs);
+    if (!savedNFEs || savedNFEs.length === 0) {
+      console.log('No NFEs found');
+      return [];
+    }
+    
     return savedNFEs.reduce((acc: any[], nfe) => {
+      if (!nfe.produtos || !Array.isArray(nfe.produtos)) {
+        console.log('NFE without produtos:', nfe);
+        return acc;
+      }
+      
       const nfeProdutos = nfe.produtos.map(produto => ({
         ...produto,
         nfeId: nfe.id,
@@ -47,24 +39,24 @@ const Produtos = () => {
     }, []);
   }, [savedNFEs]);
 
-  // Filtrar produtos baseado na busca e configurações
+  console.log('allProducts calculated:', allProducts);
+
+  // Filtrar produtos baseado na busca
   const filteredProducts = React.useMemo(() => {
+    if (!searchTerm) return allProducts;
+    
     return allProducts.filter(product => {
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = 
+      return (
         (product.codigo?.toString().toLowerCase().includes(searchLower) ||
         product.descricao?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
         product.referencia?.toLowerCase().includes(searchLower) ||
         product.fornecedor?.toLowerCase().includes(searchLower) ||
-        product.descricao_complementar?.toLowerCase().includes(searchLower));
-
-      const matchesImageFilter = !settings.showOnlyWithImage || product.imagem;
-      const matchesHiddenFilter = !settings.showOnlyHidden || settings.hiddenItems.has(product.id);
-
-      return matchesSearch && matchesImageFilter && matchesHiddenFilter;
+        product.descricao_complementar?.toLowerCase().includes(searchLower))
+      );
     });
-  }, [allProducts, searchTerm, settings.showOnlyWithImage, settings.showOnlyHidden, settings.hiddenItems]);
+  }, [allProducts, searchTerm]);
 
   // Paginação
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -83,146 +75,162 @@ const Produtos = () => {
     setCurrentPage(page);
   };
 
-  const handleExport = () => {
-    console.log('Exportando produtos:', filteredProducts);
-  };
-
-  const handleImageSearch = (index: number, product: any) => {
-    console.log('Buscar imagem para o produto:', product);
-  };
-
   // Estatísticas dos produtos
-  const totalQuantidade = filteredProducts.reduce((acc, prod) => acc + (prod.quantity || 0), 0);
+  const totalQuantidade = filteredProducts.reduce((acc, prod) => acc + (prod.quantidade || 0), 0);
   const totalUnidades = filteredProducts.length;
-  const valorTotal = filteredProducts.reduce((acc, prod) => acc + (prod.valor || 0), 0);
-  const descontoMedio = filteredProducts.reduce((acc, prod) => acc + (prod.desconto || 0), 0) / filteredProducts.length || 0;
+  const valorTotal = filteredProducts.reduce((acc, prod) => acc + (prod.valorTotal || 0), 0);
 
   // Renderizar números de página
   const renderPageNumbers = () => {
     const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
 
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
     }
 
-    for (let i = startPage; i <= endPage; i++) {
+    for (let i = start; i <= end; i++) {
       pages.push(
         <Button
           key={i}
-          variant={currentPage === i ? "default" : "outline"}
+          variant={i === currentPage ? "default" : "outline"}
           size="sm"
           onClick={() => handlePageChange(i)}
-          className="w-8 h-8 p-0"
         >
           {i}
         </Button>
       );
     }
-
     return pages;
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando produtos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Erro ao carregar produtos: {error}</p>
+          <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full px-4 py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Produtos Importados</h1>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Filter className="h-4 w-4 mr-2" />
+            Filtros
+          </Button>
+          <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros e Busca</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por código, descrição, EAN, referência, fornecedor ou descrição complementar..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros Avançados
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="showHidden"
-                  checked={settings.showOnlyHidden}
-                  onCheckedChange={toggleShowOnlyHidden}
-                />
-                <label
-                  htmlFor="showHidden"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Mostrar apenas ocultos
-                </label>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-4 gap-4">
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Produtos</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold">{totalUnidades}</div>
-            <div className="text-sm text-muted-foreground">Quantidade de Unidades</div>
+            <p className="text-xs text-muted-foreground">Produtos únicos</p>
           </CardContent>
         </Card>
+
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Quantidade Total</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold">{totalQuantidade}</div>
-            <div className="text-sm text-muted-foreground">Total de Itens</div>
+            <p className="text-xs text-muted-foreground">Unidades em estoque</p>
           </CardContent>
         </Card>
+
         <Card>
-          <CardContent className="pt-6">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-2xl font-bold">R$ {valorTotal.toFixed(2)}</div>
-            <div className="text-sm text-muted-foreground">Valor Total</div>
+            <p className="text-xs text-muted-foreground">Valor dos produtos</p>
           </CardContent>
         </Card>
+
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold">{descontoMedio.toFixed(1)}%</div>
-            <div className="text-sm text-muted-foreground">Desconto Médio</div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">NFEs Importadas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{savedNFEs?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Notas fiscais</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Barra de busca */}
       <Card>
-        <CardContent className="p-0">
-          <ProductTable
-            products={paginatedProducts}
-            visibleColumns={settings.visibleColumns}
-            columns={getDefaultColumns()}
-            hiddenItems={settings.hiddenItems}
-            handleToggleVisibility={toggleHiddenItem}
-            handleImageSearch={handleImageSearch}
-            xapuriMarkup={settings.xapuriMarkup}
-            epitaMarkup={settings.epitaMarkup}
-            roundingType={settings.roundingType}
-            impostoEntrada={settings.impostoEntrada}
-            onImpostoEntradaChange={updateImpostoEntrada}
-            onXapuriMarkupChange={(value) => updateMarkup('xapuri', value)}
-            onEpitaMarkupChange={(value) => updateMarkup('epita', value)}
-            onRoundingTypeChange={updateRoundingType}
-          />
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar produtos por código, descrição, EAN, fornecedor..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lista de produtos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Produtos ({filteredProducts.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Nenhum produto encontrado</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {paginatedProducts.map((product, index) => (
+                <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">{product.descricao}</h3>
+                      <p className="text-sm text-gray-600">Código: {product.codigo}</p>
+                      <p className="text-sm text-gray-600">Fornecedor: {product.fornecedor}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">R$ {product.valorTotal?.toFixed(2) || '0.00'}</p>
+                      <p className="text-sm text-gray-600">Qtd: {product.quantidade}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
