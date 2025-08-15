@@ -49,7 +49,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   nfeId
 }) => {
   // Escopo por nota: prioriza invoiceNumber, mas aceita qualquer identificador único que vier
-  const scopeId = invoiceNumber || undefined;
+  const scopeId = (nfeId || invoiceNumber) || undefined;
   const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0, scopeId);
 
   const scopedKey = (key: string) => (scopeId ? `${scopeId}:${key}` : key);

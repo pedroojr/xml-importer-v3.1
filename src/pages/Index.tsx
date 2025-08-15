@@ -24,7 +24,7 @@ const Index = () => {
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
-  const scopedKey = (key: string) => (invoiceNumber ? `${invoiceNumber}:${key}` : key);
+  const scopedKey = (key: string) => ((currentNFeId || invoiceNumber) ? `${(currentNFeId || invoiceNumber)}:${key}` : key);
 
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
     const saved = localStorage.getItem(scopedKey('xapuriMarkup'));
