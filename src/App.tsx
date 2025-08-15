@@ -8,6 +8,7 @@ import Navbar from "@/components/ui/navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Produtos from "./pages/Produtos";
+import Notas from "./pages/Notas";
 import NotFound from "./pages/NotFound";
 import NFEView from "./pages/NFEView";
 
@@ -58,6 +59,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/notas" element={<Notas />} />
                 <Route path="/produtos" element={<Produtos />} />
                 <Route path="/nfe/:id" element={<NFEView />} />
                 <Route path="*" element={<NotFound />} />

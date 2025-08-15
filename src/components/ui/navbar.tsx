@@ -7,6 +7,7 @@ const Navbar = () => {
 
   const menuItems = [
     { path: '/', label: 'Início' },
+    { path: '/notas', label: 'Notas' },
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/produtos', label: 'Produtos' },
   ];
