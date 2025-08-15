@@ -320,6 +320,18 @@ app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
     const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, produtos, locked } = req.body;
+    // Buscar valores atuais para fazer merge (evitar sobrescrever com undefined)
+    const current = db.prepare('SELECT * FROM nfes WHERE id = ?').get(id);
+    if (!current) {
+      return res.status(404).json({ error: 'NFE não encontrada' });
+    }
+    const mergedFornecedor = typeof fornecedor === 'string' && fornecedor.length > 0 ? fornecedor : current.fornecedor;
+    const mergedImpostoEntrada = typeof impostoEntrada === 'number' ? impostoEntrada : current.impostoEntrada;
+    const mergedXapuriMarkup = typeof xapuriMarkup === 'number' ? xapuriMarkup : current.xapuriMarkup;
+    const mergedEpitaMarkup = typeof epitaMarkup === 'number' ? epitaMarkup : current.epitaMarkup;
+    const mergedRoundingType = typeof roundingType === 'string' && roundingType.length > 0 ? roundingType : current.roundingType;
+    const mergedValorFrete = typeof valorFrete === 'number' ? valorFrete : current.valorFrete;
+    const mergedLocked = typeof locked === 'boolean' ? (locked ? 1 : 0) : current.locked;
     
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
@@ -330,8 +342,8 @@ app.put('/api/nfes/:id', (req, res) => {
     `);
     
     const result = updateStmt.run(
-      fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, locked ? 1 : 0, id
+      mergedFornecedor, mergedImpostoEntrada, mergedXapuriMarkup, mergedEpitaMarkup,
+      mergedRoundingType, mergedValorFrete, mergedLocked, id
     );
     
     if (result.changes === 0) {
