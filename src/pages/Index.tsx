@@ -304,15 +304,18 @@ const Index = () => {
         tabs={nfeTabs}
         activeId={activeTabId}
         onActivate={(id) => {
-          setActiveTabId(id || null);
+          setActiveTabId(id);
           if (id) {
             localStorage.setItem('nfeActiveTabId', id);
             // Recarrega a NFe ao ativar
             nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
           } else {
-            // Voltar ao Início (sem produtos carregados)
+            // Voltar ao Início (sem NFe carregada)
+            localStorage.removeItem('nfeActiveTabId');
             setProducts([]);
             setHiddenItems(new Set());
+            setCurrentNFeId(null);
+            setInvoiceNumber("");
           }
         }}
         onRequestClose={(id) => {

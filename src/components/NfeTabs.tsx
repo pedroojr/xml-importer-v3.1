@@ -12,7 +12,7 @@ export interface NfeTab {
 interface NfeTabsProps {
   tabs: NfeTab[];
   activeId?: string | null;
-  onActivate: (id: string) => void;
+  onActivate: (id: string | null) => void;
   onRequestClose: (id: string) => void; // será chamado somente se locked=true; senão o componente bloqueia
 }
 
@@ -20,17 +20,12 @@ export const NfeTabs: React.FC<NfeTabsProps> = ({ tabs, activeId, onActivate, on
   const [pendingClose, setPendingClose] = React.useState<NfeTab | null>(null);
 
   return (
-    <div className="w-full border-b bg-white sticky top-0 z-20">
+    <div className="w-full border-b bg-white sticky top-0 z-30">
       <div className="flex gap-2 px-3 py-2 overflow-x-auto">
-        {/* Aba de navegação padrão para sair (Início) */}
+        {/* Aba fixa de Início */}
         <div
           className={`flex items-center gap-2 px-3 py-1 rounded-full border cursor-pointer select-none ${!activeId ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
-          onClick={() => {
-            onActivate('');
-            // limpar foco, mas manter abas persistidas
-            localStorage.removeItem('nfeActiveTabId');
-          }}
-          title="Início"
+          onClick={() => onActivate(null)}
         >
           <span className="text-sm font-medium">Início</span>
         </div>
