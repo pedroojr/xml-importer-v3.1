@@ -118,9 +118,27 @@ const initDatabase = () => {
       descricao_complementar TEXT,
       custoExtra REAL DEFAULT 0,
       freteProporcional REAL DEFAULT 0,
+      custoLiquido REAL,
+      precoXapuri REAL,
+      precoEpita REAL,
       FOREIGN KEY (nfeId) REFERENCES nfes(id) ON DELETE CASCADE
     )
   `);
+
+  // Garantir colunas novas em bases existentes
+  try {
+    const pcols = db.prepare("PRAGMA table_info(produtos)").all();
+    const ensureCol = (name, def) => {
+      if (!pcols.some(c => c.name === name)) {
+        db.exec(`ALTER TABLE produtos ADD COLUMN ${name} ${def}`);
+      }
+    };
+    ensureCol('custoLiquido', 'REAL');
+    ensureCol('precoXapuri', 'REAL');
+    ensureCol('precoEpita', 'REAL');
+  } catch (e) {
+    console.warn('Aviso ao garantir colunas de produtos:', e?.message || e);
+  }
   
   // Tabela de histórico de preços por produto
   db.exec(`
@@ -273,8 +291,9 @@ app.post('/api/nfes', (req, res) => {
         nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
         valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
         baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-        imageUrl, descricao_complementar, custoExtra, freteProporcional
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        imageUrl, descricao_complementar, custoExtra, freteProporcional,
+        custoLiquido, precoXapuri, precoEpita
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -300,7 +319,8 @@ app.post('/api/nfes', (req, res) => {
             produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
             produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
             produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0
+            produto.custoExtra || 0, produto.freteProporcional || 0,
+            produto.custoLiquido || null, produto.precoXapuri || null, produto.precoEpita || null
           );
         });
       }
@@ -360,10 +380,21 @@ app.put('/api/nfes/:id', (req, res) => {
           impostoEntrada, xapuriMarkup, epitaMarkup
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
+      const updateProdutoPreco = db.prepare(`
+        UPDATE produtos SET custoLiquido = ?, precoXapuri = ?, precoEpita = ?
+        WHERE nfeId = ? AND codigo = ?
+      `);
       produtos.forEach(p => {
         insertPreco.run(
           p.codigo, p.descricao, id, p.valorUnitario || 0, p.netPrice || 0,
-          p.xapuriPrice || 0, p.epitaPrice || 0, impostoEntrada, xapuriMarkup, epitaMarkup
+          p.xapuriPrice || 0, p.epitaPrice || 0, newImpostoEntrada, newXapuriMarkup, newEpitaMarkup
+        );
+        updateProdutoPreco.run(
+          p.custoLiquido || p.netPrice || 0,
+          p.xapuriPrice || 0,
+          p.epitaPrice || 0,
+          id,
+          p.codigo
         );
       });
     }
