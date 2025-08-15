@@ -304,19 +304,25 @@ const Index = () => {
         tabs={nfeTabs}
         activeId={activeTabId}
         onActivate={(id) => {
-          setActiveTabId(id);
-          if (id) {
-            localStorage.setItem('nfeActiveTabId', id);
-            // Recarrega a NFe ao ativar
-            nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
-          } else {
-            // Voltar ao Início (sem NFe carregada)
-            localStorage.removeItem('nfeActiveTabId');
+          // Ativa Início (sem NFe)
+          if (id === 'home') {
+            setActiveTabId('home');
+            localStorage.setItem('nfeActiveTabId', 'home');
+            // Limpa seleção de NFe, volta para Início
             setProducts([]);
             setHiddenItems(new Set());
             setCurrentNFeId(null);
             setInvoiceNumber("");
+            setBrandName("");
+            setIsEditingBrand(false);
+            setXmlContentForDataSystem(null);
+            setCurrentTab('upload');
+            return;
           }
+          setActiveTabId(id);
+          localStorage.setItem('nfeActiveTabId', id);
+          // Recarrega a NFe ao ativar
+          nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
         }}
         onRequestClose={(id) => {
           // Só fecha se estiver concluída/locked (o componente já bloqueia visualmente)
@@ -331,6 +337,7 @@ const Index = () => {
             if (nextActive) localStorage.setItem('nfeActiveTabId', nextActive); else localStorage.removeItem('nfeActiveTabId');
           }
         }}
+        showHome
       />
       <div className="w-full px-4 py-8">
         {products.length === 0 && (
