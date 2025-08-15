@@ -246,44 +246,6 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
   }));
 
-  const [isConcluding, setIsConcluding] = useState(false);
-
-  const handleConclude = async () => {
-    if (!nfeId) return;
-    try {
-      setIsConcluding(true);
-      // calcular preços por item
-      const payloadProdutos = productsWithFrete.map((p) => {
-        const custoLiquido = p.netPrice || 0; // netPrice já inclui frete proporcional acima
-        const xapuriPrice = roundPrice(calculateSalePrice({ ...p, netPrice: custoLiquido }, xapuriMarkup), roundingType);
-        const epitaPrice = roundPrice(calculateSalePrice({ ...p, netPrice: custoLiquido }, epitaMarkup), roundingType);
-        return {
-          codigo: p.codigo,
-          descricao: p.descricao,
-          valorUnitario: p.unitPrice || 0,
-          netPrice: custoLiquido,
-          custoLiquido,
-          xapuriPrice,
-          epitaPrice,
-        };
-      });
-      await nfeAPI.update(nfeId, {
-        impostoEntrada,
-        xapuriMarkup,
-        epitaMarkup,
-        roundingType,
-        valorFrete,
-        locked: true,
-        produtos: payloadProdutos,
-      });
-      setLocked(true);
-    } catch (e) {
-      console.error('Erro ao concluir NFE:', e);
-    } finally {
-      setIsConcluding(false);
-    }
-  };
-
   // SSE: assinar atualizações em tempo real desta NFE
   useEffect(() => {
     if (!nfeId) return;
@@ -349,8 +311,33 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               onValorFreteChange={setValorFrete}
               locked={locked}
               onToggleLock={() => setLocked(prev => !prev)}
-              onConclude={handleConclude}
-              isConcluding={isConcluding}
+              onFinalize={async () => {
+                try {
+                  if (!nfeId) return;
+                  // Monta payload com preços por item já calculados na tabela
+                  const payloadProdutos = productsWithFrete.map((p) => ({
+                    codigo: p.codigo,
+                    descricao: p.descricao,
+                    valorUnitario: p.unitPrice || 0,
+                    netPrice: p.netPrice || 0,
+                    xapuriPrice: roundPrice(calculateSalePrice(p, xapuriMarkup), roundingType),
+                    epitaPrice: roundPrice(calculateSalePrice(p, epitaMarkup), roundingType),
+                    custoLiquido: p.netPrice || 0,
+                  }));
+                  await nfeAPI.update(nfeId, {
+                    impostoEntrada,
+                    xapuriMarkup,
+                    epitaMarkup,
+                    roundingType,
+                    valorFrete,
+                    produtos: payloadProdutos,
+                    locked: true,
+                  });
+                  setLocked(true);
+                } catch (e) {
+                  console.error('Erro ao concluir NFe:', e);
+                }
+              }}
             />
 
             <ProductTable

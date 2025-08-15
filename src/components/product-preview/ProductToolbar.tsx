@@ -36,8 +36,7 @@ interface ProductToolbarProps {
   onValorFreteChange: (value: number) => void;
   locked?: boolean;
   onToggleLock?: () => void;
-  onConclude?: () => void;
-  isConcluding?: boolean;
+  onFinalize?: () => void;
 }
 
 export const ProductToolbar: React.FC<ProductToolbarProps> = ({
@@ -63,8 +62,7 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
   onValorFreteChange,
   locked,
   onToggleLock,
-  onConclude,
-  isConcluding,
+  onFinalize,
 }) => {
   return (
     <div className="w-full p-4 border-b bg-white">
@@ -106,21 +104,13 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
             Nova Nota
           </Button>
           <Button
-            variant="outline"
+            variant={locked ? 'outline' : 'default'}
             size="sm"
-            onClick={onToggleLock}
-            className="flex-1 lg:flex-none"
+            onClick={() => onFinalize?.()}
+            className={`flex-1 lg:flex-none ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+            disabled={!!locked}
           >
-            {locked ? 'Destrancar' : 'Trancar'}
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={onConclude}
-            disabled={!!locked || !!isConcluding}
-            className="flex-1 lg:flex-none bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isConcluding ? 'Concluindo...' : 'Concluir'}
+            {locked ? 'Concluída' : 'Concluir'}
           </Button>
           <Button
             variant="outline"

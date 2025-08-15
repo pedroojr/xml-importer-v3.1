@@ -14,7 +14,6 @@ import { Product, NFE } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
 import { mapApiProductsToComponents } from "@/utils/productMapper";
-import TabsNfe, { NfeTab } from "@/components/ui/tabs-nfe";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -25,7 +24,7 @@ const Index = () => {
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
-  const scopedKey = (key: string) => (invoiceNumber ? `${invoiceNumber}:${key}` : key);
+  const scopedKey = (key: string) => ((currentNFeId || invoiceNumber) ? `${(currentNFeId || invoiceNumber)}:${key}` : key);
 
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
     const saved = localStorage.getItem(scopedKey('xapuriMarkup'));
@@ -47,15 +46,6 @@ const Index = () => {
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
   const { savedNFEs, saveNFE, removeNFE } = useNFEStorage();
-
-  // Abas de NFEs abertas (persistentes)
-  const [openTabs, setOpenTabs] = useState<NfeTab[]>(() => {
-    const raw = localStorage.getItem('openNfeTabs');
-    return raw ? JSON.parse(raw) : [];
-  });
-  const [activeTabId, setActiveTabId] = useState<string | undefined>(() => localStorage.getItem('activeNfeTab') || undefined);
-  useEffect(() => { localStorage.setItem('openNfeTabs', JSON.stringify(openTabs)); }, [openTabs]);
-  useEffect(() => { if (activeTabId) localStorage.setItem('activeNfeTab', activeTabId); }, [activeTabId]);
 
   const extractNFeInfo = (xmlDoc: Document) => {
     const nfeNode = xmlDoc.querySelector('NFe');
@@ -94,8 +84,6 @@ const Index = () => {
       setIsEditingBrand(false);
       setXmlContentForDataSystem(null);
       setCurrentTab("upload");
-      setOpenTabs(prev => prev.filter(t => t.id !== currentNFeId));
-      if (activeTabId === currentNFeId) setActiveTabId(undefined);
     }
   };
 
@@ -135,9 +123,6 @@ const Index = () => {
       
       saveNFE(nfe);
       setCurrentTab("upload");
-      // abrir aba
-      setOpenTabs(prev => [...prev, { id: nfeId, title: `NF ${nfeInfo.numero} — ${nfeInfo.emitNome}`, locked: false }]);
-      setActiveTabId(nfeId);
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
       alert('Erro ao processar arquivo XML. Verifique se é uma NF-e válida.');
@@ -159,6 +144,7 @@ const Index = () => {
   };
 
   const handleLoadNFe = (nfe: NFE) => {
+    // Ao carregar uma NFE salva pela API, mapeia os produtos para o formato esperado pelos componentes
     const mappedProducts = Array.isArray(nfe.produtos)
       ? mapApiProductsToComponents(nfe.produtos as unknown as any[])
       : [];
@@ -172,12 +158,10 @@ const Index = () => {
     setXmlContentForDataSystem(null);
     setCurrentTab("upload");
 
-    // Abas persistentes
-    setOpenTabs(prev => prev.some(t => t.id === nfe.id) ? prev : [...prev, { id: nfe.id, title: `NF ${nfe.numero} — ${nfe.fornecedor}`, locked: !!(nfe as any).locked }]);
-    setActiveTabId(nfe.id);
-
+    // Escopo por nota para chaves locais
     const key = (k: string) => (nfe.numero ? `${nfe.numero}:${k}` : k);
 
+    // Carregar preferências: se existir no localStorage, usa; caso contrário, aplica valor vindo da API e persiste localmente
     const localX = localStorage.getItem(key('xapuriMarkup'));
     if (localX) {
       setXapuriMarkup(parseInt(localX));
@@ -210,30 +194,11 @@ const Index = () => {
       localStorage.setItem(key('impostoEntrada'), String(nfe.impostoEntrada));
     }
 
+    // Valor do frete é lido dentro do ProductPreview a partir do localStorage; garante persistência local com dado do servidor
     if (typeof nfe.valorFrete === 'number') {
       const localFrete = localStorage.getItem(key('valorFrete'));
       if (!localFrete) {
         localStorage.setItem(key('valorFrete'), String(nfe.valorFrete));
-      }
-    }
-  };
-
-  const handleActivateTab = (id: string) => {
-    const nfe = savedNFEs.find(n => n.id === id);
-    if (nfe) handleLoadNFe(nfe);
-    setActiveTabId(id);
-  };
-
-  const handleCloseTab = (id: string) => {
-    setOpenTabs(prev => prev.filter(t => t.id !== id));
-    if (activeTabId === id) {
-      const next = openTabs.find(t => t.id !== id);
-      setActiveTabId(next?.id);
-      if (next) {
-        const nfe = savedNFEs.find(n => n.id === next.id);
-        if (nfe) handleLoadNFe(nfe);
-      } else {
-        setProducts([]);
       }
     }
   };
@@ -258,6 +223,7 @@ const Index = () => {
     localStorage.setItem(scopedKey('roundingType'), value);
   };
 
+  // Recarrega configurações quando a nota (invoiceNumber) muda
   useEffect(() => {
     if (!invoiceNumber) return;
     const savedX = localStorage.getItem(scopedKey('xapuriMarkup'));
@@ -277,7 +243,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <TabsNfe tabs={openTabs} activeId={activeTabId} onActivate={handleActivateTab} onClose={handleCloseTab} />
       <div className="w-full px-4 py-8">
         {products.length === 0 && (
           <div className="w-full flex gap-8">
