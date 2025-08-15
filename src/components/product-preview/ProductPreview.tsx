@@ -334,6 +334,9 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
                     locked: true,
                   });
                   setLocked(true);
+                  // Dispara evento global para a barra de abas marcar como concluída
+                  const evt = new CustomEvent('nfe:locked', { detail: { nfeId } });
+                  window.dispatchEvent(evt);
                 } catch (e) {
                   console.error('Erro ao concluir NFe:', e);
                 }

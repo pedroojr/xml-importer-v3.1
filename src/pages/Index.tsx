@@ -13,6 +13,8 @@ import { useNFEStorage } from "@/hooks/useNFEStorage";
 import { Product, NFE } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
+import NfeTabs, { NfeTab } from "@/components/NfeTabs";
+import { nfeAPI } from "@/services/api";
 import { mapApiProductsToComponents } from "@/utils/productMapper";
 
 const Index = () => {
@@ -44,6 +46,16 @@ const Index = () => {
   });
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
+  // Abas de NFe
+  const [nfeTabs, setNfeTabs] = useState<NfeTab[]>(() => {
+    try {
+      const raw = localStorage.getItem('nfeTabs');
+      return raw ? JSON.parse(raw) as NfeTab[] : [];
+    } catch {
+      return [];
+    }
+  });
+  const [activeTabId, setActiveTabId] = useState<string | null>(() => localStorage.getItem('nfeActiveTabId'));
 
   const { savedNFEs, saveNFE, removeNFE } = useNFEStorage();
 
@@ -158,6 +170,17 @@ const Index = () => {
     setXmlContentForDataSystem(null);
     setCurrentTab("upload");
 
+    // Gerenciar abas
+    setNfeTabs(prev => {
+      const exists = prev.some(t => t.id === nfe.id);
+      const next = exists ? prev.map(t => t.id === nfe.id ? { ...t, numero: nfe.numero, fornecedor: nfe.fornecedor } : t)
+                          : [...prev, { id: nfe.id, numero: nfe.numero, fornecedor: nfe.fornecedor, locked: false }];
+      localStorage.setItem('nfeTabs', JSON.stringify(next));
+      return next;
+    });
+    setActiveTabId(nfe.id);
+    localStorage.setItem('nfeActiveTabId', nfe.id);
+
     // Escopo por nota para chaves locais
     const key = (k: string) => (nfe.numero ? `${nfe.numero}:${k}` : k);
 
@@ -241,8 +264,65 @@ const Index = () => {
     setIsEditingBrand(false);
   };
 
+  // Carregar NFe ativa do storage na primeira carga
+  useEffect(() => {
+    const loadActive = async () => {
+      const active = activeTabId || localStorage.getItem('nfeActiveTabId');
+      if (!active) return;
+      try {
+        const nfe = await nfeAPI.getById(active);
+        handleLoadNFe(nfe as unknown as NFE);
+      } catch (e) {
+        console.error('Falha ao reabrir NFe ativa:', e);
+      }
+    };
+    if (products.length === 0) {
+      loadActive();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Escutar evento de lock vindo do ProductPreview e marcar a aba
+  useEffect(() => {
+    const onLocked = (e: any) => {
+      const id = e?.detail?.nfeId as string | undefined;
+      if (!id) return;
+      setNfeTabs(prev => {
+        const next = prev.map(t => t.id === id ? { ...t, locked: true } : t);
+        localStorage.setItem('nfeTabs', JSON.stringify(next));
+        return next;
+      });
+    };
+    window.addEventListener('nfe:locked' as any, onLocked as any);
+    return () => window.removeEventListener('nfe:locked' as any, onLocked as any);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+      {/* Barra de Abas de NFEs abertas */}
+      <NfeTabs
+        tabs={nfeTabs}
+        activeId={activeTabId}
+        onActivate={(id) => {
+          setActiveTabId(id);
+          localStorage.setItem('nfeActiveTabId', id);
+          // Recarrega a NFe ao ativar
+          nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
+        }}
+        onRequestClose={(id) => {
+          // Só fecha se estiver concluída/locked (o componente já bloqueia visualmente)
+          setNfeTabs(prev => {
+            const next = prev.filter(t => t.id !== id);
+            localStorage.setItem('nfeTabs', JSON.stringify(next));
+            return next;
+          });
+          if (activeTabId === id) {
+            const nextActive = nfeTabs.find(t => t.id !== id)?.id || null;
+            setActiveTabId(nextActive);
+            if (nextActive) localStorage.setItem('nfeActiveTabId', nextActive); else localStorage.removeItem('nfeActiveTabId');
+          }
+        }}
+      />
       <div className="w-full px-4 py-8">
         {products.length === 0 && (
           <div className="w-full flex gap-8">
