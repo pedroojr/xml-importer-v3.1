@@ -361,9 +361,22 @@ const Produtos = () => {
                       <p className="text-sm text-gray-600">Código: {product.codigo}</p>
                       <p className="text-sm text-gray-600">Fornecedor: {product.fornecedor}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">R$ {product.valorTotal?.toFixed(2) || '0.00'}</p>
-                      <p className="text-sm text-gray-600">Qtd: {product.quantidade}</p>
+                    <div className="text-right min-w-[320px]">
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="text-left">
+                          <p className="text-gray-500">Custo Líquido</p>
+                          <p className="font-medium">R$ {(product.custoLiquido ?? product.netPrice ?? 0).toFixed(2)}</p>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-gray-500">Preço Xap.</p>
+                          <p className="font-medium">R$ {(product.precoXapuri ?? product.xapuriPrice ?? 0).toFixed(2)}</p>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-gray-500">Preço Epit.</p>
+                          <p className="font-medium">R$ {(product.precoEpita ?? product.epitaPrice ?? 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">Qtd: {product.quantidade} • Total NF: R$ {product.valorTotal?.toFixed(2) || '0.00'}</div>
                     </div>
                   </div>
                 </div>
