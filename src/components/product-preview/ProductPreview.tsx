@@ -45,10 +45,11 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   onRoundingTypeChange,
   invoiceNumber
 }) => {
-  // Escopo por nota: se houver invoiceNumber, usa prefixo para isolar configurações
-  const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0, invoiceNumber || undefined);
+  // Escopo por nota: prioriza invoiceNumber, mas aceita qualquer identificador único que vier
+  const scopeId = invoiceNumber || undefined;
+  const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0, scopeId);
 
-  const scopedKey = (key: string) => (invoiceNumber ? `${invoiceNumber}:${key}` : key);
+  const scopedKey = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
 
   const [valorFrete, setValorFrete] = useState<number>(0);
 
@@ -104,7 +105,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     localStorage.setItem(scopedKey('roundingType'), roundingType);
     localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
     localStorage.setItem(scopedKey('impostoEntrada'), impostoEntrada.toString());
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, invoiceNumber]);
+  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, scopeId]);
 
   useEffect(() => {
     const savedColumnOrder = localStorage.getItem(scopedKey('columnOrder'));
@@ -113,7 +114,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
       const newSortedColumns = [...columns].sort((a, b) => (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0));
       setSortedColumns(newSortedColumns);
     }
-  }, [columns, invoiceNumber]);
+  }, [columns, scopeId]);
 
   const handleMarkupChange = (xapuri: number, epita: number, rounding: RoundingType) => {
     onXapuriMarkupChange(xapuri);
@@ -186,7 +187,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   // Calcular frete proporcional para cada item
   const fretesProporcionais = calcularFreteProporcional(products, valorFrete, impostoEntrada);
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
-  const nfeId = invoiceNumber || 'nfe-id-unico';
+  const nfeId = scopeId || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
   const productsWithFrete = products.map((p, idx) => ({
     ...p,
