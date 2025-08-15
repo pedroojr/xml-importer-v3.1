@@ -385,6 +385,7 @@ const Index = () => {
               onXapuriMarkupChange={handleXapuriMarkupChange}
               onEpitaMarkupChange={handleEpitaMarkupChange}
               onRoundingTypeChange={handleRoundingTypeChange}
+              invoiceNumber={invoiceNumber}
             />
           </div>
         )}

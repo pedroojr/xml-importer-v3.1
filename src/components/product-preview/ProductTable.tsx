@@ -32,6 +32,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useNFEStorage } from '@/hooks/useNFEStorage';
+import api from '@/services/api';
 
 interface ProductTableProps {
   products: Product[];
@@ -486,6 +487,27 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     // Força a re-renderização da tabela quando o imposto de entrada mudar
     setFilters(prevFilters => ({ ...prevFilters }));
   }, [impostoEntrada]);
+
+  // Registrar histórico de preços quando a tabela é montada (best-effort)
+  useEffect(() => {
+    const payload = products.map(p => ({
+      codigo: p.codigo,
+      descricao: p.descricao,
+      valorUnitario: p.unitPrice,
+      netPrice: p.netPrice,
+      xapuriPrice: roundPrice(calculateSalePrice(p, xapuriMarkup), roundingType),
+      epitaPrice: roundPrice(calculateSalePrice(p, epitaMarkup), roundingType)
+    }));
+    // Não bloquear UI: ignore erros
+    api.put(`/nfes/${products[0]?.nfeId || 'unknown'}`, {
+      produtos: payload,
+      impostoEntrada,
+      xapuriMarkup,
+      epitaMarkup,
+      roundingType
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCopyValue = async (value: any) => {
     try {

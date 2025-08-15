@@ -26,6 +26,7 @@ interface ProductPreviewProps {
   onXapuriMarkupChange: (value: number) => void;
   onEpitaMarkupChange: (value: number) => void;
   onRoundingTypeChange: (value: RoundingType) => void;
+  invoiceNumber?: string; // usado para escopo das configurações por nota
 }
 
 const ProductPreview: React.FC<ProductPreviewProps> = ({ 
@@ -41,9 +42,13 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   roundingType,
   onXapuriMarkupChange,
   onEpitaMarkupChange,
-  onRoundingTypeChange
+  onRoundingTypeChange,
+  invoiceNumber
 }) => {
-  const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0);
+  // Escopo por nota: se houver invoiceNumber, usa prefixo para isolar configurações
+  const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0, invoiceNumber || undefined);
+
+  const scopedKey = (key: string) => (invoiceNumber ? `${invoiceNumber}:${key}` : key);
 
   const [valorFrete, setValorFrete] = useState<number>(0);
 
@@ -60,7 +65,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
 
   const [localHiddenItems, setLocalHiddenItems] = useState<Set<number>>(hiddenItems);
   const [compactMode, setCompactMode] = useState(() => {
-    const saved = localStorage.getItem('compactMode');
+    const saved = localStorage.getItem(scopedKey('compactMode'));
     return saved ? JSON.parse(saved) : false;
   });
   
@@ -72,7 +77,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
 
   const columns = getDefaultColumns();
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => {
-    const saved = localStorage.getItem('visibleColumns');
+    const saved = localStorage.getItem(scopedKey('visibleColumns'));
     if (saved) {
       const parsedColumns = JSON.parse(saved) as string[];
       return new Set(parsedColumns);
@@ -81,7 +86,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   });
 
   const [sortedColumns, setSortedColumns] = useState<Column[]>(() => {
-    const savedColumnOrder = localStorage.getItem('columnOrder');
+    const savedColumnOrder = localStorage.getItem(scopedKey('columnOrder'));
     if (savedColumnOrder) {
       const orderMap = JSON.parse(savedColumnOrder) as Record<string, number>;
       return [...columns].sort((a, b) => (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0));
@@ -94,21 +99,21 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   }, [hiddenItems]);
 
   useEffect(() => {
-    localStorage.setItem('xapuriMarkup', xapuriMarkup.toString());
-    localStorage.setItem('epitaMarkup', epitaMarkup.toString());
-    localStorage.setItem('roundingType', roundingType);
-    localStorage.setItem('compactMode', JSON.stringify(compactMode));
-    localStorage.setItem('impostoEntrada', impostoEntrada.toString());
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada]);
+    localStorage.setItem(scopedKey('xapuriMarkup'), xapuriMarkup.toString());
+    localStorage.setItem(scopedKey('epitaMarkup'), epitaMarkup.toString());
+    localStorage.setItem(scopedKey('roundingType'), roundingType);
+    localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
+    localStorage.setItem(scopedKey('impostoEntrada'), impostoEntrada.toString());
+  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, invoiceNumber]);
 
   useEffect(() => {
-    const savedColumnOrder = localStorage.getItem('columnOrder');
+    const savedColumnOrder = localStorage.getItem(scopedKey('columnOrder'));
     if (savedColumnOrder) {
       const orderMap = JSON.parse(savedColumnOrder) as Record<string, number>;
       const newSortedColumns = [...columns].sort((a, b) => (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0));
       setSortedColumns(newSortedColumns);
     }
-  }, [columns]);
+  }, [columns, invoiceNumber]);
 
   const handleMarkupChange = (xapuri: number, epita: number, rounding: RoundingType) => {
     onXapuriMarkupChange(xapuri);
@@ -130,7 +135,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
       newVisibleColumns.add(columnId);
     }
     setVisibleColumns(newVisibleColumns);
-    localStorage.setItem('visibleColumns', JSON.stringify(Array.from(newVisibleColumns)));
+    localStorage.setItem(scopedKey('visibleColumns'), JSON.stringify(Array.from(newVisibleColumns)));
   };
 
   const toggleCompactMode = () => {
@@ -138,8 +143,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     setCompactMode(newMode);
     const newColumns = new Set(newMode ? compactColumns : columns.map(col => col.id));
     setVisibleColumns(newColumns);
-    localStorage.setItem('visibleColumns', JSON.stringify(Array.from(newColumns)));
-    localStorage.setItem('compactMode', JSON.stringify(newMode));
+    localStorage.setItem(scopedKey('visibleColumns'), JSON.stringify(Array.from(newColumns)));
+    localStorage.setItem(scopedKey('compactMode'), JSON.stringify(newMode));
   };
 
   const handleToggleVisibility = (index: number) => {

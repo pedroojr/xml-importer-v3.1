@@ -109,6 +109,24 @@ const initDatabase = () => {
       FOREIGN KEY (nfeId) REFERENCES nfes(id) ON DELETE CASCADE
     )
   `);
+  
+  // Tabela de histórico de preços por produto
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS precos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo TEXT NOT NULL,
+      descricao TEXT,
+      nfeId TEXT,
+      costUnit REAL,
+      costNet REAL,
+      priceXapuri REAL,
+      priceEpita REAL,
+      impostoEntrada REAL,
+      xapuriMarkup REAL,
+      epitaMarkup REAL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
   // Índices para melhor performance
   db.exec(`
@@ -116,6 +134,7 @@ const initDatabase = () => {
     CREATE INDEX IF NOT EXISTS idx_nfes_data ON nfes(data);
     CREATE INDEX IF NOT EXISTS idx_produtos_nfeId ON produtos(nfeId);
     CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);
+    CREATE INDEX IF NOT EXISTS idx_precos_codigo ON precos(codigo);
   `);
 };
 
@@ -245,7 +264,7 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, produtos } = req.body;
     
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
@@ -264,6 +283,22 @@ app.put('/api/nfes/:id', (req, res) => {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
     
+    // Se vierem produtos, registra os preços no histórico
+    if (Array.isArray(produtos)) {
+      const insertPreco = db.prepare(`
+        INSERT INTO precos (
+          codigo, descricao, nfeId, costUnit, costNet, priceXapuri, priceEpita,
+          impostoEntrada, xapuriMarkup, epitaMarkup
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      produtos.forEach(p => {
+        insertPreco.run(
+          p.codigo, p.descricao, id, p.valorUnitario || 0, p.netPrice || 0,
+          p.xapuriPrice || 0, p.epitaPrice || 0, impostoEntrada, xapuriMarkup, epitaMarkup
+        );
+      });
+    }
+
     res.json({ message: 'NFE atualizada com sucesso' });
   } catch (error) {
     console.error('Erro ao atualizar NFE:', error);
@@ -319,6 +354,19 @@ app.get('/api/status', (req, res) => {
     database: 'connected',
     environment: 'production'
   });
+});
+
+// GET - Histórico de preços por código
+app.get('/api/precos/:codigo', (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const stmt = db.prepare('SELECT * FROM precos WHERE codigo = ? ORDER BY createdAt DESC LIMIT 100');
+    const rows = stmt.all(codigo);
+    res.json(rows);
+  } catch (error) {
+    console.error('Erro ao buscar histórico de preços:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
 });
 
 // Middleware de tratamento de erros
