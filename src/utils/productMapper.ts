@@ -53,8 +53,8 @@ export function mapApiProductToComponent(apiProduct: any): Product {
     discount: 0, // calculado (pode ser ajustado depois)
     
     // Campos opcionais para funcionalidades avançadas
-    xapuriPrice: apiProduct.xapuriPrice,
-    epitaPrice: apiProduct.epitaPrice,
+    xapuriPrice: apiProduct.xapuriPrice ?? apiProduct.precoXapuri,
+    epitaPrice: apiProduct.epitaPrice ?? apiProduct.precoEpita,
     salePrice: apiProduct.salePrice,
     color: apiProduct.color,
     size: apiProduct.size,
@@ -63,6 +63,10 @@ export function mapApiProductToComponent(apiProduct: any): Product {
     
     // Campos para cálculos
     impostoEntrada: apiProduct.impostoEntrada,
+    // Novos campos persistidos no servidor
+    custoLiquido: apiProduct.custoLiquido,
+    precoXapuri: apiProduct.precoXapuri,
+    precoEpita: apiProduct.precoEpita,
   };
   
   console.log('✅ Produto mapeado com sucesso:');

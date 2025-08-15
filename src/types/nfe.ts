@@ -35,6 +35,9 @@ export interface Product {
   // Campos opcionais para funcionalidades avançadas
   xapuriPrice?: number;
   epitaPrice?: number;
+  custoLiquido?: number;
+  precoXapuri?: number;
+  precoEpita?: number;
   salePrice?: number;
   color?: string;
   size?: string;

@@ -315,15 +315,23 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
                 try {
                   if (!nfeId) return;
                   // Monta payload com preços por item já calculados na tabela
-                  const payloadProdutos = productsWithFrete.map((p) => ({
-                    codigo: p.codigo,
-                    descricao: p.descricao,
-                    valorUnitario: p.unitPrice || 0,
-                    netPrice: p.netPrice || 0,
-                    xapuriPrice: roundPrice(calculateSalePrice(p, xapuriMarkup), roundingType),
-                    epitaPrice: roundPrice(calculateSalePrice(p, epitaMarkup), roundingType),
-                    custoLiquido: p.netPrice || 0,
-                  }));
+                  const payloadProdutos = productsWithFrete.map((p) => {
+                    // custo líquido final = custo com impostoEntrada + frete proporcional (unitário)
+                    const custoComImposto = (p.unitPrice || 0) * (1 + (impostoEntrada || 0) / 100);
+                    const custoLiquidoFinal = custoComImposto + (p.freteProporcional || 0);
+                    const produtoParaPreco = { ...p, netPrice: custoLiquidoFinal } as any;
+                    const xap = roundPrice(calculateSalePrice(produtoParaPreco, xapuriMarkup), roundingType);
+                    const ep = roundPrice(calculateSalePrice(produtoParaPreco, epitaMarkup), roundingType);
+                    return {
+                      codigo: p.codigo,
+                      descricao: p.descricao,
+                      valorUnitario: p.unitPrice || 0,
+                      netPrice: custoLiquidoFinal,
+                      xapuriPrice: xap,
+                      epitaPrice: ep,
+                      custoLiquido: custoLiquidoFinal,
+                    };
+                  });
                   await nfeAPI.update(nfeId, {
                     impostoEntrada,
                     xapuriMarkup,
