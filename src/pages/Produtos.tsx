@@ -92,6 +92,13 @@ const Produtos = () => {
         const mappedProducts = mapApiProductsToComponents(nfe.produtos);
         console.log('🔍 Primeiro produto após mapeamento:', mappedProducts[0]);
         
+        // TESTE DIRETO DO MAPEAMENTO
+        console.log('🧪 TESTE DO MAPEAMENTO:');
+        console.log('  - codigo -> code:', nfe.produtos[0]?.codigo, '->', mappedProducts[0]?.code);
+        console.log('  - descricao -> name:', nfe.produtos[0]?.descricao, '->', mappedProducts[0]?.name);
+        console.log('  - quantidade -> quantity:', nfe.produtos[0]?.quantidade, '->', mappedProducts[0]?.quantity);
+        console.log('  - valorTotal -> totalPrice:', nfe.produtos[0]?.valorTotal, '->', mappedProducts[0]?.totalPrice);
+        
         const nfeProdutos = mappedProducts.map(produto => ({
           ...produto,
           nfeId: nfe.id,
@@ -110,6 +117,11 @@ const Produtos = () => {
     console.log('🎯 Total de produtos processados:', products.length);
     if (products.length > 0) {
       console.log('🔍 Exemplo de produto processado:', products[0]);
+      console.log('🔍 Campos mapeados do primeiro produto:');
+      console.log('  - code:', products[0].code);
+      console.log('  - name:', products[0].name);
+      console.log('  - quantity:', products[0].quantity);
+      console.log('  - totalPrice:', products[0].totalPrice);
     }
     return products;
   }, [nfes]);
