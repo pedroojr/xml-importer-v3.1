@@ -72,8 +72,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const [selectedImageProduct, setSelectedImageProduct] = useState<Product | null>(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [invoiceNumber, setInvoiceNumber] = useState<string | null>(null);
-  const [brandName, setBrandName] = useState<string | null>(null);
+  const [invoiceNumberState, setInvoiceNumberState] = useState<string | null>(null);
+  const [brandNameState, setBrandNameState] = useState<string | null>(null);
 
   const columns = getDefaultColumns();
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(() => {
@@ -285,8 +285,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
       {isExportModalOpen && (
         <ExportOptions
           products={products}
-          invoiceNumber={invoiceNumber || ''}
-          brandName={brandName || ''}
+          invoiceNumber={invoiceNumberState || ''}
+          brandName={brandNameState || ''}
           isOpen={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
         />
