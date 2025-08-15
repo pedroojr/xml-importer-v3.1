@@ -3,8 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Info, History, Edit2, Trash2 } from "lucide-react";
+import { Info, History, Edit2, Trash2, UploadCloud, Search, FileText as FileTextIcon } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import { SefazIntegration } from "@/components/SefazIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
@@ -375,32 +376,70 @@ const Index = () => {
 
             {/* Conteúdo principal */}
             <div className="flex-1 space-y-8">
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-4">
-                  <Info size={16} />
-                  <span>Importador de NF-e</span>
+              {/* Cabeçalho da página */}
+              <div className="flex items-start justify-between flex-wrap gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium mb-3">
+                    <Info size={14} />
+                    <span>Importador de NF-e</span>
+                  </div>
+                  <h1 className="text-3xl font-bold text-slate-900">Importação de Produtos via XML</h1>
+                  <p className="text-slate-600 mt-1">Envie o XML da NF-e ou consulte na SEFAZ para importar automaticamente os produtos.</p>
                 </div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Importação de Produtos via XML</h1>
-                <p className="text-slate-600 w-full max-w-2xl">
-                  Faça upload do arquivo XML da NF-e ou consulte diretamente na SEFAZ para importar automaticamente os produtos
-                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = '/notas'}>
+                    Ver Notas
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.location.href = '/dashboard'}>
+                    Dashboard
+                  </Button>
+                  <Button size="sm" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>
+                    <UploadCloud className="h-4 w-4 mr-2" />
+                    Novo Upload
+                  </Button>
+                </div>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                 <div className="w-full">
                   <Tabs defaultValue="upload" value={currentTab} onValueChange={setCurrentTab} className="w-full">
-                                      <TabsList className="grid w-full grid-cols-3 mb-6">
-                    <TabsTrigger value="upload">Upload de XML</TabsTrigger>
-                    <TabsTrigger value="sefaz">Consulta SEFAZ</TabsTrigger>
-                    <TabsTrigger value="pdf">Upload de PDF</TabsTrigger>
-                  </TabsList>
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
+                      <TabsTrigger value="upload" className="flex items-center gap-2">
+                        <UploadCloud className="h-4 w-4" />
+                        Upload de XML
+                      </TabsTrigger>
+                      <TabsTrigger value="sefaz" className="flex items-center gap-2">
+                        <Search className="h-4 w-4" />
+                        Consulta SEFAZ
+                      </TabsTrigger>
+                      <TabsTrigger value="pdf" className="flex items-center gap-2">
+                        <FileTextIcon className="h-4 w-4" />
+                        Upload de PDF
+                      </TabsTrigger>
+                    </TabsList>
                     
                     <TabsContent value="upload">
                       <FileUpload onFileSelect={handleFileSelect} />
+                      <div className="mt-4">
+                        <Alert>
+                          <AlertTitle className="font-medium">Dica</AlertTitle>
+                          <AlertDescription>
+                            Para melhor reconhecimento dos itens, utilize o XML completo gerado pela SEFAZ. Após o upload você poderá revisar e ajustar preços antes de salvar.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
                     </TabsContent>
                     
                     <TabsContent value="sefaz">
                       <SefazIntegration onXmlReceived={handleXmlFromSefaz} />
+                      <div className="mt-4">
+                        <Alert>
+                          <AlertTitle className="font-medium">Consulta SEFAZ</AlertTitle>
+                          <AlertDescription>
+                            Informe a chave de acesso para buscar a nota diretamente dos servidores da SEFAZ.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
                     </TabsContent>
 
                     <TabsContent value="pdf">

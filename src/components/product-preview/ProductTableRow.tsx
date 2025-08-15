@@ -12,7 +12,7 @@ interface ProductTableRowProps {
   product: Product;
   index: number;
   editable: boolean;
-  onUpdate: (index: number, field: keyof Product, value: any) => void;
+  onUpdate: (index: number, field: keyof Product, value: string | number | undefined) => void;
   units: string[];
   globalMarkup: number;
   roundingType: RoundingType;
@@ -36,7 +36,7 @@ export const ProductTableRow: React.FC<ProductTableRowProps> = ({
     if (roundedPrice !== product.valorTotal) { // Changed to valorTotal
       onUpdate(index, 'valorTotal', roundedPrice); // Changed to valorTotal
     }
-  }, [globalMarkup, roundingType, product.netPrice]);
+  }, [globalMarkup, roundingType, product.netPrice, onUpdate, index, product]);
 
   // Calcula valores unitários
   const unitNetPrice = product.quantidade > 0 ? product.netPrice / product.quantidade : 0;

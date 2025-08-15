@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import axios from 'axios';
 
 interface FileUploadPDFProps {
-  onItemsExtracted: (items: any[]) => void;
+  onItemsExtracted: (items: Array<{ codigo: string; descricao: string; quantidade: number; valorUnitario: number }>) => void;
 }
 
 const FileUploadPDF: React.FC<FileUploadPDFProps> = ({ onItemsExtracted }) => {

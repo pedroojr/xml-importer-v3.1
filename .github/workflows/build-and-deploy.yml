@@ -1,122 +1,102 @@
-name: CI/CD — Build, Publish (GHCR) e Deploy
+name: Build and Deploy to VPS
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: ["main"]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
   packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_WEB: ghcr.io/${{ github.repository }}-web
-  IMAGE_API: ghcr.io/${{ github.repository }}-api
-  # Ajuste se precisar apontar para outra API
-  VITE_API_BASE: https://api.xml.lojasrealce.shop
+  IMAGE_WEB: ghcr.io/${{ github.repository }}-web:latest
+  IMAGE_API: ghcr.io/${{ github.repository }}-api:latest
 
 jobs:
-  verify:
-    name: Verificar build do projeto
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Instalar deps (web)
-        run: npm ci
-
-      - name: Build (web)
-        run: npm run build
-
-      - name: Instalar deps (api)
-        working-directory: server
-        run: npm ci --omit=dev
-
-      # Opcional: rode testes se existirem
-      # - name: Testes (api)
-      #   working-directory: server
-      #   run: npm test --if-present
-
-  publish:
-    name: Build e publicar imagens no GHCR
-    needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Setup Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login no GHCR
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build e push — Web
+      - name: Build and push WEB image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile.web
           push: true
-          build-args: |
-            VITE_API_BASE=${{ env.VITE_API_BASE }}
-          tags: |
-            ${{ env.IMAGE_WEB }}:latest
-            ${{ env.IMAGE_WEB }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_WEB }}
 
-      - name: Build e push — API
+      - name: Build and push API image
         uses: docker/build-push-action@v6
         with:
-          context: server
-          file: server/Dockerfile
+          context: ./server
+          file: ./server/Dockerfile
           push: true
-          tags: |
-            ${{ env.IMAGE_API }}:latest
-            ${{ env.IMAGE_API }}:${{ github.sha }}
+          tags: ${{ env.IMAGE_API }}
 
-  deploy:
-    name: Deploy em servidor (opcional)
-    needs: publish
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Executar deploy via SSH
+      - name: Upload docker-compose.yml to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/var/www/xml-importer"
+
+      - name: Deploy on VPS (docker compose pull/up)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script_stop: true
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -e
-            echo "📦 Login no GHCR"
-            if [ -n "${GHCR_USER}" ] && [ -n "${GHCR_TOKEN}" ]; then
-              echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            fi
-            echo "📁 Indo para a pasta do projeto"
-            cd "${DEPLOY_PATH}"
-            echo "⬇️ Pull das imagens"
+            set -euo pipefail
+            mkdir -p /var/www/xml-importer
+            cd /var/www/xml-importer
+            # Login no GHCR com token de leitura
+            docker login ghcr.io -u ${{ secrets.GHCR_USERNAME }} -p ${{ secrets.GHCR_TOKEN }}
             docker compose pull
-            echo "🚀 Subindo containers"
-            docker compose up -d --remove-orphans
-        env:
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          GHCR_USER: ${{ secrets.GHCR_USER }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+            docker compose up -d
+            docker image prune -f || true
+
+  deploy-hostinger:
+    name: Deploy static build to Hostinger (public_html/xml)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload dist via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          username: ${{ secrets.HOSTINGER_FTP_USER }}
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          local-dir: dist/
+          server-dir: ${{ secrets.HOSTINGER_REMOTE_DIR || 'public_html/xml/' }}
+          log-level: standard
 
 

@@ -19,7 +19,7 @@ import {
 interface ProductTagsProps {
   product: Product;
   index: number;
-  onUpdate: (index: number, field: keyof Product, value: any) => void;
+  onUpdate: (index: number, field: keyof Product, value: string | number | string[] | undefined) => void;
 }
 
 // Categorias predefinidas para sugestão automática

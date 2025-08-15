@@ -88,7 +88,7 @@ const NFEPreview: React.FC<NFEPreviewProps> = ({ nfe, onClose }) => {
           <div className="space-y-4">
             <h3 className="font-semibold">Produtos</h3>
             <div className="max-h-60 overflow-y-auto">
-              {nfe.itens.map((item: any, index: number) => (
+              {nfe.itens.map((item: { descricao: string; quantidade: number; valor: number }, index: number) => (
                 <div key={index} className="p-3 bg-gray-50 rounded-lg mb-2">
                   <div className="font-medium">{item.descricao}</div>
                   <div className="text-sm text-muted-foreground">

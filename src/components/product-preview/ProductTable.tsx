@@ -57,7 +57,7 @@ interface ProductWithNfeId extends Product {
 }
 
 const CellContent: React.FC<{
-  value: any;
+  value: string | number | undefined;
   column: Column;
 }> = ({ value, column }) => {
   const getFormatacao = () => {
@@ -327,7 +327,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     localStorage.setItem('columnWidths', JSON.stringify(newWidths));
   }, [columnWidths]);
 
-  const handleCopyToClipboard = async (value: any, column: Column, field: string) => {
+  const handleCopyToClipboard = async (value: string | number | undefined, column: Column, field: string) => {
     try {
       const formattedValue = formatValueForCopy(value, column);
       await navigator.clipboard.writeText(formattedValue);
@@ -339,7 +339,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }
   };
 
-  const formatValueForCopy = (value: any, column: Column): string => {
+  const formatValueForCopy = (value: string | number | undefined, column: Column): string => {
     if (typeof value === 'number') {
       if (column.id.toLowerCase().includes('price') || 
           column.id.toLowerCase().includes('discount') || 
@@ -398,7 +398,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
     }));
   };
 
-  let filteredProducts = products.filter(product => {
+  const filteredProducts = products.filter(product => {
     const isItemHidden = hiddenItems.has(products.indexOf(product));
 
     // Se mostrar apenas ocultados, filtra só os ocultos
@@ -509,7 +509,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleCopyValue = async (value: any) => {
+  const handleCopyValue = async (value: string | number | undefined) => {
     try {
       let success;
       let displayValue = value;
@@ -716,7 +716,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     }
 
                     // Ajustar preços finais para somar custo extra
-                    let value: any = column.getValue ? 
+                    let value: string | number | undefined = column.getValue ? 
                       column.getValue(product) : 
                       product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {

@@ -6,8 +6,8 @@ export interface Column {
   initiallyVisible: boolean;
   alignment?: 'left' | 'right';
   width?: string;
-  format?: (value: any, product?: Product) => string;
-  getValue?: (product: Product) => any;
+  format?: (value: string | number | undefined, product?: Product) => string;
+  getValue?: (product: Product) => string | number | undefined;
   minWidth?: number;
   order?: number; // Add an order property to track column position
 }

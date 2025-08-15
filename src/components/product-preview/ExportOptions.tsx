@@ -182,7 +182,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
     }
 
     const filteredProducts = products.map(product => {
-      const filteredProduct: Record<string, any> = {};
+      const filteredProduct: Record<string, string | number | undefined> = {};
       selectedFields.forEach(field => {
         filteredProduct[field] = product[field as keyof Product];
       });

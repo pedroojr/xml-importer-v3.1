@@ -6,7 +6,7 @@ const Navbar = () => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/', label: 'Início' },
+    { path: '/', label: 'Menu Inicial' },
     { path: '/notas', label: 'Notas' },
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/produtos', label: 'Produtos' },

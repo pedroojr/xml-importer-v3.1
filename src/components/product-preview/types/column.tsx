@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Image } from "lucide-react";
 import { formatCurrency } from "@/utils/formatters";
 
-export function getDefaultColumns(): ColumnDef<any>[] {
+export function getDefaultColumns(): ColumnDef<{ valor: number; impostoEntrada: number; epitaMarkup: number }>[] {
   return [
     // ... existing columns ...
     {

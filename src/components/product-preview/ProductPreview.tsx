@@ -53,7 +53,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const scopeId = (nfeId || invoiceNumber) || undefined;
   const { impostoEntrada, setImpostoEntrada } = useImpostoEntrada(0, scopeId);
 
-  const scopedKey = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
+  const scopedKey = useCallback((key: string) => (scopeId ? `${scopeId}:${key}` : key), [scopeId]);
 
   const [valorFrete, setValorFrete] = useState<number>(() => {
     const saved = localStorage.getItem(scopedKey('valorFrete'));
@@ -116,7 +116,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
     localStorage.setItem(scopedKey('valorFrete'), valorFrete.toString());
     localStorage.setItem(scopedKey('locked'), JSON.stringify(locked));
-  }, [compactMode, valorFrete, locked, scopeId]);
+  }, [compactMode, valorFrete, locked, scopeId, scopedKey]);
 
   // Persistir no servidor quando alterar e não estiver trancado
   useEffect(() => {
@@ -163,7 +163,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
       }
     };
     persist();
-  }, [locked]);
+  }, [locked, nfeId, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, scopeId]);
 
   const handleMarkupChange = (xapuri: number, epita: number, rounding: RoundingType) => {
     onXapuriMarkupChange(xapuri);
@@ -274,7 +274,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
       }
     });
     return () => source.close();
-  }, [nfeId]);
+  }, [nfeId, onXapuriMarkupChange, onEpitaMarkupChange, onRoundingTypeChange, setImpostoEntrada, xapuriMarkup, epitaMarkup, roundingType, impostoEntrada, valorFrete]);
 
   return (
     <div className="w-full max-w-full flex-1">
@@ -319,7 +319,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
                     // custo líquido final = custo com desconto * (1+imposto) + frete proporcional
                     const custoBase = calculateCustoLiquido(p, impostoEntrada);
                     const custoLiquidoFinal = custoBase + (p.freteProporcional || 0);
-                    const produtoParaPreco = { ...p, netPrice: custoLiquidoFinal } as any;
+                    const produtoParaPreco = { ...p, netPrice: custoLiquidoFinal } as Product & { netPrice: number };
                     const xap = roundPrice(calculateSalePrice(produtoParaPreco, xapuriMarkup), roundingType);
                     const ep = roundPrice(calculateSalePrice(produtoParaPreco, epitaMarkup), roundingType);
                     return {
