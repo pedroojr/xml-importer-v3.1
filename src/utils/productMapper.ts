@@ -6,7 +6,19 @@ import { Product } from '@/types/nfe';
 export function mapApiProductToComponent(apiProduct: any): Product {
   console.log('🔄 Mapeando produto da API:', apiProduct);
   
-  return {
+  // Verificar se o produto tem os campos necessários
+  if (!apiProduct) {
+    console.error('❌ Produto da API é null ou undefined');
+    return {} as Product;
+  }
+  
+  console.log('🔍 Campos do produto da API:');
+  console.log('  - codigo:', apiProduct.codigo);
+  console.log('  - descricao:', apiProduct.descricao);
+  console.log('  - quantidade:', apiProduct.quantidade);
+  console.log('  - valorTotal:', apiProduct.valorTotal);
+  
+  const mappedProduct = {
     // Campos da API (principais)
     codigo: apiProduct.codigo || '',
     descricao: apiProduct.descricao || '',
@@ -52,6 +64,14 @@ export function mapApiProductToComponent(apiProduct: any): Product {
     // Campos para cálculos
     impostoEntrada: apiProduct.impostoEntrada,
   };
+  
+  console.log('✅ Produto mapeado com sucesso:');
+  console.log('  - code (alias):', mappedProduct.code);
+  console.log('  - name (alias):', mappedProduct.name);
+  console.log('  - quantity (alias):', mappedProduct.quantity);
+  console.log('  - totalPrice (alias):', mappedProduct.totalPrice);
+  
+  return mappedProduct;
 }
 
 /**
@@ -59,7 +79,16 @@ export function mapApiProductToComponent(apiProduct: any): Product {
  */
 export function mapApiProductsToComponents(apiProducts: any[]): Product[] {
   console.log('🔄 Mapeando produtos da API:', apiProducts.length);
-  return apiProducts.map(mapApiProductToComponent);
+  
+  if (!Array.isArray(apiProducts)) {
+    console.error('❌ apiProducts não é um array:', typeof apiProducts);
+    return [];
+  }
+  
+  const mappedProducts = apiProducts.map(mapApiProductToComponent);
+  console.log('✅ Produtos mapeados:', mappedProducts.length);
+  
+  return mappedProducts;
 }
 
 /**
