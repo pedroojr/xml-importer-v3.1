@@ -123,6 +123,26 @@ export const useNFEStorage = () => {
     }
   };
 
+  // Persistir visibilidade (oculto/exibido) no servidor
+  const updateProdutoHidden = async (nfeId: string, produtoCodigo: string, hidden: boolean) => {
+    try {
+      const nfe = savedNFEs.find(n => n.id === nfeId);
+      if (nfe) {
+        const updatedProdutos = nfe.produtos.map(produto =>
+          produto.codigo === produtoCodigo
+            ? { ...produto, hidden }
+            : produto
+        );
+        await updateNFE(nfeId, { produtos: updatedProdutos });
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Erro ao atualizar visibilidade do produto');
+    }
+  };
+
   return {
     savedNFEs,
     loading,
@@ -134,6 +154,7 @@ export const useNFEStorage = () => {
     updateNFEImpostoEntrada,
     updateProdutoCustoExtra,
     updateProdutoFreteProporcional,
+    updateProdutoHidden,
     loadNFEs,
   };
 }; 

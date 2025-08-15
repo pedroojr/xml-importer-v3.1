@@ -118,6 +118,7 @@ const initDatabase = () => {
       descricao_complementar TEXT,
       custoExtra REAL DEFAULT 0,
       freteProporcional REAL DEFAULT 0,
+      hidden BOOLEAN DEFAULT 0,
       custoLiquido REAL,
       precoXapuri REAL,
       precoEpita REAL,
@@ -136,6 +137,7 @@ const initDatabase = () => {
     ensureCol('custoLiquido', 'REAL');
     ensureCol('precoXapuri', 'REAL');
     ensureCol('precoEpita', 'REAL');
+    ensureCol('hidden', 'BOOLEAN DEFAULT 0');
   } catch (e) {
     console.warn('Aviso ao garantir colunas de produtos:', e?.message || e);
   }
@@ -291,9 +293,9 @@ app.post('/api/nfes', (req, res) => {
         nfeId, codigo, descricao, ncm, cfop, unidade, quantidade,
         valorUnitario, valorTotal, baseCalculoICMS, valorICMS, aliquotaICMS,
         baseCalculoIPI, valorIPI, aliquotaIPI, ean, reference, brand,
-        imageUrl, descricao_complementar, custoExtra, freteProporcional,
+        imageUrl, descricao_complementar, custoExtra, freteProporcional, hidden,
         custoLiquido, precoXapuri, precoEpita
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const deleteProdutos = db.prepare('DELETE FROM produtos WHERE nfeId = ?');
@@ -319,7 +321,7 @@ app.post('/api/nfes', (req, res) => {
             produto.aliquotaICMS, produto.baseCalculoIPI, produto.valorIPI,
             produto.aliquotaIPI, produto.ean, produto.reference, produto.brand,
             produto.imageUrl, produto.descricao_complementar,
-            produto.custoExtra || 0, produto.freteProporcional || 0,
+            produto.custoExtra || 0, produto.freteProporcional || 0, produto.hidden ? 1 : 0,
             produto.custoLiquido || null, produto.precoXapuri || null, produto.precoEpita || null
           );
         });
@@ -384,7 +386,7 @@ app.put('/api/nfes/:id', (req, res) => {
         SELECT 1 FROM precos WHERE codigo = ? AND nfeId = ? AND abs(strftime('%s','now') - strftime('%s', createdAt)) < 60 LIMIT 1
       `);
       const updateProdutoPreco = db.prepare(`
-        UPDATE produtos SET custoLiquido = ?, precoXapuri = ?, precoEpita = ?
+        UPDATE produtos SET custoLiquido = ?, precoXapuri = ?, precoEpita = ?, hidden = COALESCE(?, hidden)
         WHERE nfeId = ? AND codigo = ?
       `);
       produtos.forEach(p => {
@@ -400,6 +402,7 @@ app.put('/api/nfes/:id', (req, res) => {
           p.custoLiquido || p.netPrice || 0,
           p.xapuriPrice || 0,
           p.epitaPrice || 0,
+          typeof p.hidden === 'boolean' ? (p.hidden ? 1 : 0) : null,
           id,
           p.codigo
         );
@@ -474,6 +477,57 @@ app.get('/api/precos/:codigo', (req, res) => {
     res.json(rows);
   } catch (error) {
     console.error('Erro ao buscar histórico de preços:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// Utilidades de arredondamento (replica do front)
+function roundPriceServer(price, type) {
+  const p = Number(price || 0);
+  switch (type) {
+    case '90':
+      return Math.floor(p) + 0.90;
+    case '50':
+      return Math.ceil(p * 2) / 2;
+    default:
+      return Number(p.toFixed(2));
+  }
+}
+
+// POST - Recalcular preços de uma NFE e atualizar produtos/histórico
+app.post('/api/nfes/:id/recompute', (req, res) => {
+  try {
+    const { id } = req.params;
+    const nfe = db.prepare('SELECT * FROM nfes WHERE id = ?').get(id);
+    if (!nfe) return res.status(404).json({ error: 'NFE não encontrada' });
+    const produtos = db.prepare('SELECT * FROM produtos WHERE nfeId = ?').all(id);
+    const updateProdutoPreco = db.prepare(`
+      UPDATE produtos SET custoLiquido = ?, precoXapuri = ?, precoEpita = ?
+      WHERE nfeId = ? AND codigo = ?
+    `);
+    const insertPreco = db.prepare(`
+      INSERT INTO precos (
+        codigo, descricao, nfeId, costUnit, costNet, priceXapuri, priceEpita,
+        impostoEntrada, xapuriMarkup, epitaMarkup
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const tx = db.transaction(() => {
+      produtos.forEach(p => {
+        const costUnit = Number(p.valorUnitario || 0);
+        const imposto = Number(nfe.impostoEntrada || 0) / 100;
+        const custoLiquidoBase = costUnit * (1 + imposto);
+        const custoLiquidoFinal = custoLiquidoBase + Number(p.freteProporcional || 0);
+        const priceX = roundPriceServer(custoLiquidoFinal * (1 + Number(nfe.xapuriMarkup || 0) / 100), nfe.roundingType || 'none');
+        const priceE = roundPriceServer(custoLiquidoFinal * (1 + Number(nfe.epitaMarkup || 0) / 100), nfe.roundingType || 'none');
+        updateProdutoPreco.run(custoLiquidoFinal, priceX, priceE, id, p.codigo);
+        insertPreco.run(p.codigo, p.descricao, id, costUnit, custoLiquidoFinal, priceX, priceE, nfe.impostoEntrada, nfe.xapuriMarkup, nfe.epitaMarkup);
+      });
+    });
+    tx();
+    broadcastNfeUpdate(id, { action: 'recomputed' });
+    res.json({ message: 'Preços recalculados com sucesso', id, produtos: produtos.length });
+  } catch (error) {
+    console.error('Erro ao recalcular NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
