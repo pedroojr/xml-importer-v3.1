@@ -51,7 +51,10 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
 
   const scopedKey = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
 
-  const [valorFrete, setValorFrete] = useState<number>(0);
+  const [valorFrete, setValorFrete] = useState<number>(() => {
+    const saved = localStorage.getItem(scopedKey('valorFrete'));
+    return saved ? Number(saved) : 0;
+  });
 
   // Calculate suggested markups
   const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
@@ -105,7 +108,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     localStorage.setItem(scopedKey('roundingType'), roundingType);
     localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
     localStorage.setItem(scopedKey('impostoEntrada'), impostoEntrada.toString());
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, scopeId]);
+    localStorage.setItem(scopedKey('valorFrete'), valorFrete.toString());
+  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, valorFrete, scopeId]);
 
   useEffect(() => {
     const savedColumnOrder = localStorage.getItem(scopedKey('columnOrder'));

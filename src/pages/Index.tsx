@@ -23,23 +23,25 @@ const Index = () => {
   const [xmlContentForDataSystem, setXmlContentForDataSystem] = useState<string | null>(null);
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
+  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const scopedKey = (key: string) => (invoiceNumber ? `${invoiceNumber}:${key}` : key);
+
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
-    const saved = localStorage.getItem('xapuriMarkup');
+    const saved = localStorage.getItem(scopedKey('xapuriMarkup'));
     return saved ? parseInt(saved) : 160;
   });
   const [epitaMarkup, setEpitaMarkup] = useState(() => {
-    const saved = localStorage.getItem('epitaMarkup');
+    const saved = localStorage.getItem(scopedKey('epitaMarkup'));
     return saved ? parseInt(saved) : 130;
   });
   const [impostoEntrada, setImpostoEntrada] = useState(() => {
-    const saved = localStorage.getItem('impostoEntrada');
+    const saved = localStorage.getItem(scopedKey('impostoEntrada'));
     return saved ? parseInt(saved) : 12;
   });
   const [roundingType, setRoundingType] = useState<RoundingType>(() => {
-    const saved = localStorage.getItem('roundingType');
+    const saved = localStorage.getItem(scopedKey('roundingType'));
     return (saved as RoundingType) || 'none';
   });
-  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
   const [brandName, setBrandName] = useState<string>("");
   const [isEditingBrand, setIsEditingBrand] = useState(false);
 
@@ -159,23 +161,36 @@ const Index = () => {
 
   const handleXapuriMarkupChange = (value: number) => {
     setXapuriMarkup(value);
-    localStorage.setItem('xapuriMarkup', value.toString());
+    localStorage.setItem(scopedKey('xapuriMarkup'), value.toString());
   };
 
   const handleEpitaMarkupChange = (value: number) => {
     setEpitaMarkup(value);
-    localStorage.setItem('epitaMarkup', value.toString());
+    localStorage.setItem(scopedKey('epitaMarkup'), value.toString());
   };
 
   const handleImpostoEntradaChange = (value: number) => {
     setImpostoEntrada(value);
-    localStorage.setItem('impostoEntrada', value.toString());
+    localStorage.setItem(scopedKey('impostoEntrada'), value.toString());
   };
 
   const handleRoundingTypeChange = (value: RoundingType) => {
     setRoundingType(value);
-    localStorage.setItem('roundingType', value);
+    localStorage.setItem(scopedKey('roundingType'), value);
   };
+
+  // Recarrega configurações quando a nota (invoiceNumber) muda
+  useEffect(() => {
+    if (!invoiceNumber) return;
+    const savedX = localStorage.getItem(scopedKey('xapuriMarkup'));
+    if (savedX) setXapuriMarkup(parseInt(savedX));
+    const savedE = localStorage.getItem(scopedKey('epitaMarkup'));
+    if (savedE) setEpitaMarkup(parseInt(savedE));
+    const savedR = localStorage.getItem(scopedKey('roundingType')) as RoundingType | null;
+    if (savedR) setRoundingType(savedR);
+    const savedI = localStorage.getItem(scopedKey('impostoEntrada'));
+    if (savedI) setImpostoEntrada(parseInt(savedI));
+  }, [invoiceNumber]);
 
   const handleBrandNameChange = (newName: string) => {
     setBrandName(newName);
