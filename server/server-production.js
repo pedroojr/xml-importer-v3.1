@@ -158,6 +158,47 @@ app.use((req, res, next) => {
   next();
 });
 
+// SSE (Server-Sent Events) para atualizações em tempo real por NFE
+const nfeStreams = new Map(); // nfeId -> Set<res>
+
+function subscribeNfe(req, res) {
+  const { id } = req.params;
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  res.write(`event: ready\n`);
+  res.write(`data: ${JSON.stringify({ id, ready: true, timestamp: Date.now() })}\n\n`);
+
+  if (!nfeStreams.has(id)) nfeStreams.set(id, new Set());
+  nfeStreams.get(id).add(res);
+
+  const heartbeat = setInterval(() => {
+    try { res.write(`event: ping\n` + `data: ${Date.now()}\n\n`); } catch (_) {}
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const set = nfeStreams.get(id);
+    if (set) {
+      set.delete(res);
+      if (set.size === 0) nfeStreams.delete(id);
+    }
+  });
+}
+
+function broadcastNfeUpdate(id, payload = {}) {
+  const set = nfeStreams.get(String(id));
+  if (!set || set.size === 0) return;
+  const data = JSON.stringify({ id, updatedAt: new Date().toISOString(), ...payload });
+  for (const res of set) {
+    try { res.write(`event: nfe_updated\n` + `data: ${data}\n\n`); } catch (_) {}
+  }
+}
+
+app.get('/api/stream/nfes/:id', subscribeNfe);
+
 // Rotas da API
 
 // GET - Listar todas as NFEs
@@ -266,6 +307,8 @@ app.post('/api/nfes', (req, res) => {
     })();
     
     res.json({ message: 'NFE salva com sucesso', id });
+    // Notificar inscritos
+    broadcastNfeUpdate(id, { action: 'created_or_replaced' });
   } catch (error) {
     console.error('Erro ao salvar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
@@ -312,6 +355,8 @@ app.put('/api/nfes/:id', (req, res) => {
     }
 
     res.json({ message: 'NFE atualizada com sucesso' });
+    // Notificar inscritos
+    broadcastNfeUpdate(id, { action: 'updated' });
   } catch (error) {
     console.error('Erro ao atualizar NFE:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });

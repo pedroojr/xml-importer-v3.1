@@ -12,6 +12,7 @@ import { ExportOptions } from './ExportOptions';
 import { ProductImageModal } from './ProductImageModal';
 import { useImpostoEntrada } from '../../hooks/useImpostoEntrada';
 import { nfeAPI } from '@/services/api';
+import axios from 'axios';
 
 interface ProductPreviewProps {
   products: Product[];
@@ -237,6 +238,33 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     // Custo final unitário: custo líquido unitário + frete proporcional unitário
     netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
   }));
+
+  // SSE: assinar atualizações em tempo real desta NFE
+  useEffect(() => {
+    if (!nfeId) return;
+    const source = new EventSource(`${location.origin}/api/stream/nfes/${nfeId}`);
+    source.addEventListener('nfe_updated', async (evt) => {
+      try {
+        const payload = JSON.parse((evt as MessageEvent).data);
+        if (payload?.id !== nfeId) return;
+        // Recarrega dados da NFE do servidor
+        const updated = await nfeAPI.getById(nfeId);
+        // Atualiza controles com o que veio do servidor, preservando lock local
+        onXapuriMarkupChange(updated.xapuriMarkup ?? xapuriMarkup);
+        onEpitaMarkupChange(updated.epitaMarkup ?? epitaMarkup);
+        onRoundingTypeChange((updated.roundingType as RoundingType) || roundingType);
+        setImpostoEntrada(updated.impostoEntrada ?? impostoEntrada);
+        const k = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
+        if (typeof updated.valorFrete === 'number') {
+          localStorage.setItem(k('valorFrete'), String(updated.valorFrete));
+          setValorFrete(updated.valorFrete);
+        }
+      } catch (e) {
+        console.error('Erro ao processar SSE nfe_updated:', e);
+      }
+    });
+    return () => source.close();
+  }, [nfeId]);
 
   return (
     <div className="w-full max-w-full flex-1">
