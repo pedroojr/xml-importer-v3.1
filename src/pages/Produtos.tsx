@@ -2,8 +2,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Download, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Search, Filter, Download, ChevronLeft, ChevronRight, AlertCircle, History as HistoryIcon, BadgeCheck } from "lucide-react";
 import { mapApiProductsToComponents } from '@/utils/productMapper';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ITEMS_PER_PAGE = 50;
 
@@ -34,7 +35,7 @@ const Produtos = () => {
         setError(null);
         
         console.log('🚀 Carregando NFEs da API...');
-        const response = await fetch('https://xml.lojasrealce.shop/api/nfes');
+        const response = await fetch('/api/nfes');
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -176,6 +177,25 @@ const Produtos = () => {
     setCurrentPage(page);
   };
 
+  // Drawer de histórico por código
+  const [historyOpen, setHistoryOpen] = React.useState(false);
+  const [historyCodigo, setHistoryCodigo] = React.useState<string | null>(null);
+  const [historyItems, setHistoryItems] = React.useState<any[]>([]);
+  const openHistory = async (codigo: string) => {
+    try {
+      setHistoryOpen(true);
+      setHistoryCodigo(codigo);
+      const resp = await fetch(`/api/precos/${encodeURIComponent(codigo)}`);
+      if (resp.ok) {
+        setHistoryItems(await resp.json());
+      } else {
+        setHistoryItems([]);
+      }
+    } catch {
+      setHistoryItems([]);
+    }
+  };
+
   const handleRetry = () => {
     window.location.reload();
   };
@@ -258,21 +278,23 @@ const Produtos = () => {
         </div>
       </div>
 
-      {/* Debug Info */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <h3 className="font-medium text-blue-800 mb-2">🔍 Informações de Debug</h3>
-          <div className="text-sm text-blue-700 space-y-1">
-            <p>NFEs carregadas: {nfes.length}</p>
-            <p>Produtos extraídos: {allProducts.length}</p>
-            <p>Produtos filtrados: {filteredProducts.length}</p>
-            <p>Status da API: {debugInfo.apiStatus}</p>
-            {debugInfo.firstNfeId && (
-              <p>Primeira NFE: {debugInfo.firstNfeId} ({debugInfo.firstNfeProdutos} produtos)</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Debug Info (apenas em DEV) */}
+      {import.meta.env.DEV && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <h3 className="font-medium text-blue-800 mb-2">🔍 Informações de Debug</h3>
+            <div className="text-sm text-blue-700 space-y-1">
+              <p>NFEs carregadas: {nfes.length}</p>
+              <p>Produtos extraídos: {allProducts.length}</p>
+              <p>Produtos filtrados: {filteredProducts.length}</p>
+              <p>Status da API: {debugInfo.apiStatus}</p>
+              {debugInfo.firstNfeId && (
+                <p>Primeira NFE: {debugInfo.firstNfeId} ({debugInfo.firstNfeProdutos} produtos)</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -361,22 +383,38 @@ const Produtos = () => {
                       <p className="text-sm text-gray-600">Código: {product.codigo}</p>
                       <p className="text-sm text-gray-600">Fornecedor: {product.fornecedor}</p>
                     </div>
-                    <div className="text-right min-w-[320px]">
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="text-left">
-                          <p className="text-gray-500">Custo Líquido</p>
-                          <p className="font-medium">R$ {(product.custoLiquido ?? product.netPrice ?? 0).toFixed(2)}</p>
-                        </div>
-                        <div className="text-left">
-                          <p className="text-gray-500">Preço Xap.</p>
-                          <p className="font-medium">R$ {(product.precoXapuri ?? product.xapuriPrice ?? 0).toFixed(2)}</p>
-                        </div>
-                        <div className="text-left">
-                          <p className="text-gray-500">Preço Epit.</p>
-                          <p className="font-medium">R$ {(product.precoEpita ?? product.epitaPrice ?? 0).toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">Qtd: {product.quantidade} • Total NF: R$ {product.valorTotal?.toFixed(2) || '0.00'}</div>
+                    <div className="text-right">
+                      <p className="font-medium">R$ {product.valorTotal?.toFixed(2) || '0.00'}</p>
+                      <p className="text-sm text-gray-600">Qtd: {product.quantidade}</p>
+                    </div>
+                  </div>
+                  {/* Preços aprovados */}
+                  <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+                    <div className="rounded bg-slate-50 px-2 py-1 border">
+                      <span className="text-slate-600">Custo Líquido:</span>{' '}
+                      <span className="font-medium">{product.custoLiquido ? `R$ ${Number(product.custoLiquido).toFixed(2)}` : '-'}</span>
+                    </div>
+                    <div className="rounded bg-slate-50 px-2 py-1 border">
+                      <span className="text-slate-600">Preço Xap.:</span>{' '}
+                      <span className="font-medium">{product.precoXapuri ? `R$ ${Number(product.precoXapuri).toFixed(2)}` : '-'}</span>
+                    </div>
+                    <div className="rounded bg-slate-50 px-2 py-1 border">
+                      <span className="text-slate-600">Preço Epita.:</span>{' '}
+                      <span className="font-medium">{product.precoEpita ? `R$ ${Number(product.precoEpita).toFixed(2)}` : '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      {(product.precoXapuri && product.precoEpita) ? (
+                        <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">
+                          <BadgeCheck className="h-4 w-4" /> Aprovado
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                          Em edição
+                        </span>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => openHistory(product.codigo)}>
+                        <HistoryIcon className="h-4 w-4 mr-1" /> Histórico
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -414,6 +452,28 @@ const Produtos = () => {
           </span>
         </div>
       )}
+      {/* Drawer/Modal histórico */}
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Histórico de preços — Código {historyCodigo}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto space-y-2">
+            {historyItems.length === 0 && (
+              <p className="text-sm text-gray-600">Sem histórico encontrado.</p>
+            )}
+            {historyItems.map((h, i) => (
+              <div key={i} className="border rounded p-2 text-sm grid grid-cols-1 md:grid-cols-5 gap-2">
+                <div><span className="text-gray-500">Data:</span> {new Date(h.createdAt || h.dataRegistro).toLocaleString()}</div>
+                <div><span className="text-gray-500">Custo unit.:</span> R$ {(h.costUnit || 0).toFixed(2)}</div>
+                <div><span className="text-gray-500">Custo líquido:</span> R$ {(h.costNet || 0).toFixed(2)}</div>
+                <div><span className="text-gray-500">Xapuri:</span> R$ {(h.priceXapuri || 0).toFixed(2)}</div>
+                <div><span className="text-gray-500">Epitac.:</span> R$ {(h.priceEpita || 0).toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

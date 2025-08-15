@@ -53,11 +53,8 @@ export function mapApiProductToComponent(apiProduct: any): Product {
     discount: 0, // calculado (pode ser ajustado depois)
     
     // Campos opcionais para funcionalidades avançadas
-    xapuriPrice: apiProduct.xapuriPrice ?? apiProduct.precoXapuri,
-    epitaPrice: apiProduct.epitaPrice ?? apiProduct.precoEpita,
-    custoLiquido: apiProduct.custoLiquido,
-    precoXapuri: apiProduct.precoXapuri,
-    precoEpita: apiProduct.precoEpita,
+    xapuriPrice: apiProduct.xapuriPrice,
+    epitaPrice: apiProduct.epitaPrice,
     salePrice: apiProduct.salePrice,
     color: apiProduct.color,
     size: apiProduct.size,
