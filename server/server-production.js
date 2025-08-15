@@ -320,19 +320,21 @@ app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
     const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, produtos, locked } = req.body;
-    // Buscar valores atuais para fazer merge (evitar sobrescrever com undefined)
+
+    // Buscar valores atuais para preservar campos não enviados
     const current = db.prepare('SELECT * FROM nfes WHERE id = ?').get(id);
     if (!current) {
       return res.status(404).json({ error: 'NFE não encontrada' });
     }
-    const mergedFornecedor = typeof fornecedor === 'string' && fornecedor.length > 0 ? fornecedor : current.fornecedor;
-    const mergedImpostoEntrada = typeof impostoEntrada === 'number' ? impostoEntrada : current.impostoEntrada;
-    const mergedXapuriMarkup = typeof xapuriMarkup === 'number' ? xapuriMarkup : current.xapuriMarkup;
-    const mergedEpitaMarkup = typeof epitaMarkup === 'number' ? epitaMarkup : current.epitaMarkup;
-    const mergedRoundingType = typeof roundingType === 'string' && roundingType.length > 0 ? roundingType : current.roundingType;
-    const mergedValorFrete = typeof valorFrete === 'number' ? valorFrete : current.valorFrete;
-    const mergedLocked = typeof locked === 'boolean' ? (locked ? 1 : 0) : current.locked;
-    
+
+    const newFornecedor = fornecedor ?? current.fornecedor;
+    const newImpostoEntrada = typeof impostoEntrada === 'number' ? impostoEntrada : current.impostoEntrada;
+    const newXapuriMarkup = typeof xapuriMarkup === 'number' ? xapuriMarkup : current.xapuriMarkup;
+    const newEpitaMarkup = typeof epitaMarkup === 'number' ? epitaMarkup : current.epitaMarkup;
+    const newRoundingType = typeof roundingType === 'string' ? roundingType : current.roundingType;
+    const newValorFrete = typeof valorFrete === 'number' ? valorFrete : current.valorFrete;
+    const newLocked = typeof locked === 'boolean' ? (locked ? 1 : 0) : current.locked;
+
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
         fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
@@ -340,10 +342,10 @@ app.put('/api/nfes/:id', (req, res) => {
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
-    
+
     const result = updateStmt.run(
-      mergedFornecedor, mergedImpostoEntrada, mergedXapuriMarkup, mergedEpitaMarkup,
-      mergedRoundingType, mergedValorFrete, mergedLocked, id
+      newFornecedor, newImpostoEntrada, newXapuriMarkup, newEpitaMarkup,
+      newRoundingType, newValorFrete, newLocked, id
     );
     
     if (result.changes === 0) {
