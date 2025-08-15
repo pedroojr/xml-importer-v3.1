@@ -136,12 +136,28 @@ const Produtos = () => {
         (product.codigo?.toString().toLowerCase().includes(searchLower) ||
         product.descricao?.toLowerCase().includes(searchLower) ||
         product.ean?.toString().includes(searchLower) ||
-        product.referencia?.toLowerCase().includes(searchLower) ||
+        product.reference?.toLowerCase().includes(searchLower) ||
         product.fornecedor?.toLowerCase().includes(searchLower) ||
         product.descricao_complementar?.toLowerCase().includes(searchLower))
       );
     });
   }, [allProducts, searchTerm]);
+
+  // DEBUG: Verificar campos dos produtos
+  React.useEffect(() => {
+    if (allProducts.length > 0) {
+      console.log('🔍 DEBUG: Campos do primeiro produto:');
+      const firstProduct = allProducts[0];
+      console.log('  - codigo:', firstProduct.codigo);
+      console.log('  - descricao:', firstProduct.descricao);
+      console.log('  - quantidade:', firstProduct.quantidade);
+      console.log('  - valorTotal:', firstProduct.valorTotal);
+      console.log('  - code (alias):', firstProduct.code);
+      console.log('  - name (alias):', firstProduct.name);
+      console.log('  - quantity (alias):', firstProduct.quantity);
+      console.log('  - totalPrice (alias):', firstProduct.totalPrice);
+    }
+  }, [allProducts]);
 
   // Paginação
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
