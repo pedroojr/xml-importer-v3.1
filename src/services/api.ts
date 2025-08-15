@@ -4,7 +4,8 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   // Se estiver em produção (Hostinger), usar API externa
   if (import.meta.env.PROD) {
-    return import.meta.env.VITE_API_URL || 'https://seu-dominio.com/api';
+    // Preferir variável de ambiente; se não houver, usar mesma origem
+    return import.meta.env.VITE_API_URL || '/api';
   }
   // Se estiver em desenvolvimento, usar local
   return import.meta.env.VITE_API_URL || 'http://localhost:3001/api';

@@ -242,7 +242,9 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   // SSE: assinar atualizações em tempo real desta NFE
   useEffect(() => {
     if (!nfeId) return;
-    const source = new EventSource(`${location.origin}/api/stream/nfes/${nfeId}`);
+    const base = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+    const url = base ? `${base.replace(/\/$/, '')}/stream/nfes/${nfeId}` : `/api/stream/nfes/${nfeId}`;
+    const source = new EventSource(url);
     source.addEventListener('nfe_updated', async (evt) => {
       try {
         const payload = JSON.parse((evt as MessageEvent).data);
