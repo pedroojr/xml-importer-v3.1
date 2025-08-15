@@ -151,6 +151,13 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
           valorFrete,
           locked,
         });
+        // Esvaziar os caches locais para forçar o uso do valor do servidor nos outros dispositivos
+        const k = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
+        localStorage.removeItem(k('xapuriMarkup'));
+        localStorage.removeItem(k('epitaMarkup'));
+        localStorage.removeItem(k('roundingType'));
+        localStorage.removeItem(k('impostoEntrada'));
+        localStorage.removeItem(k('valorFrete'));
       } catch (err) {
         console.error('Erro ao salvar estado de lock:', err);
       }
@@ -256,11 +263,12 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
         onEpitaMarkupChange(updated.epitaMarkup ?? epitaMarkup);
         onRoundingTypeChange((updated.roundingType as RoundingType) || roundingType);
         setImpostoEntrada(updated.impostoEntrada ?? impostoEntrada);
-        const k = (key: string) => (scopeId ? `${scopeId}:${key}` : key);
         if (typeof updated.valorFrete === 'number') {
-          localStorage.setItem(k('valorFrete'), String(updated.valorFrete));
           setValorFrete(updated.valorFrete);
         }
+        // Sobrescrever estado de locked conforme servidor
+        const serverLocked = typeof updated.locked === 'number' ? !!updated.locked : !!updated.locked;
+        setLocked(serverLocked);
       } catch (e) {
         console.error('Erro ao processar SSE nfe_updated:', e);
       }

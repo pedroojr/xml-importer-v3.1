@@ -58,6 +58,7 @@ export interface NFE {
   epitaMarkup?: number;
   roundingType?: string;
   valorFrete?: number;
+  locked?: boolean | number;
   isFavorite?: boolean;
   createdAt?: string;
   updatedAt?: string;
