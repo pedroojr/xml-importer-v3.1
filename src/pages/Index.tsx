@@ -304,10 +304,16 @@ const Index = () => {
         tabs={nfeTabs}
         activeId={activeTabId}
         onActivate={(id) => {
-          setActiveTabId(id);
-          localStorage.setItem('nfeActiveTabId', id);
-          // Recarrega a NFe ao ativar
-          nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
+          setActiveTabId(id || null);
+          if (id) {
+            localStorage.setItem('nfeActiveTabId', id);
+            // Recarrega a NFe ao ativar
+            nfeAPI.getById(id).then(nfe => handleLoadNFe(nfe as unknown as NFE)).catch(() => {});
+          } else {
+            // Voltar ao Início (sem produtos carregados)
+            setProducts([]);
+            setHiddenItems(new Set());
+          }
         }}
         onRequestClose={(id) => {
           // Só fecha se estiver concluída/locked (o componente já bloqueia visualmente)
