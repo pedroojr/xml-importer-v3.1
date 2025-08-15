@@ -9,11 +9,11 @@ import FileUpload from "@/components/FileUpload";
 import { SefazIntegration } from "@/components/SefazIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
 import ProductPreview from "@/components/product-preview/ProductPreview";
-import { mapApiProductsToComponents } from '@/utils/productMapper';
 import { useNFEStorage } from "@/hooks/useNFEStorage";
 import { Product, NFE } from "@/types/nfe";
 import { RoundingType } from "@/components/product-preview/productCalculations";
 import { parseNFeXML } from "@/utils/nfeParser";
+import { mapApiProductsToComponents } from "@/utils/productMapper";
 
 const Index = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -142,11 +142,12 @@ const Index = () => {
   };
 
   const handleLoadNFe = (nfe: NFE) => {
-    // Mapear produtos vindos da API para o formato esperado pela UI
-    const mapped = Array.isArray(nfe.produtos)
-      ? mapApiProductsToComponents(nfe.produtos)
+    // Ao carregar uma NFE salva pela API, mapeia os produtos para o formato esperado pelos componentes
+    const mappedProducts = Array.isArray(nfe.produtos)
+      ? mapApiProductsToComponents(nfe.produtos as unknown as any[])
       : [];
-    setProducts(mapped);
+
+    setProducts(mappedProducts);
     setHiddenItems(new Set());
     setCurrentNFeId(nfe.id);
     setInvoiceNumber(nfe.numero);
