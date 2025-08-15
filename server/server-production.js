@@ -74,11 +74,23 @@ const initDatabase = () => {
       epitaMarkup REAL DEFAULT 130,
       roundingType TEXT DEFAULT 'none',
       valorFrete REAL DEFAULT 0,
+      locked BOOLEAN DEFAULT 0,
       isFavorite BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Garantir coluna 'locked' em bases já existentes
+  try {
+    const columns = db.prepare("PRAGMA table_info(nfes)").all();
+    const hasLocked = columns.some((c) => c.name === 'locked');
+    if (!hasLocked) {
+      db.exec("ALTER TABLE nfes ADD COLUMN locked BOOLEAN DEFAULT 0");
+    }
+  } catch (e) {
+    console.warn('Aviso ao garantir coluna locked:', e?.message || e);
+  }
 
   // Tabela de produtos
   db.exec(`
@@ -203,7 +215,7 @@ app.get('/api/nfes/:id', (req, res) => {
 // POST - Criar nova NFE
 app.post('/api/nfes', (req, res) => {
   try {
-    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete } = req.body;
+    const { id, data, numero, chaveNFE, fornecedor, valor, itens, produtos, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, locked } = req.body;
     
     // Calcular número de itens automaticamente se não fornecido
     const numeroItens = itens || (produtos && Array.isArray(produtos) ? produtos.length : 0);
@@ -211,8 +223,8 @@ app.post('/api/nfes', (req, res) => {
     const insertNFE = db.prepare(`
       INSERT OR REPLACE INTO nfes (
         id, data, numero, chaveNFE, fornecedor, valor, itens, 
-        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, locked
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
     const insertProduto = db.prepare(`
@@ -231,7 +243,7 @@ app.post('/api/nfes', (req, res) => {
       insertNFE.run(
         id, data, numero, chaveNFE, fornecedor, valor, numeroItens,
         impostoEntrada || 12, xapuriMarkup || 160, epitaMarkup || 130,
-        roundingType || 'none', valorFrete || 0
+        roundingType || 'none', valorFrete || 0, locked ? 1 : 0
       );
       
       // Remover produtos antigos
@@ -264,19 +276,19 @@ app.post('/api/nfes', (req, res) => {
 app.put('/api/nfes/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, produtos } = req.body;
+    const { fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, produtos, locked } = req.body;
     
     const updateStmt = db.prepare(`
       UPDATE nfes SET 
         fornecedor = ?, impostoEntrada = ?, xapuriMarkup = ?, 
-        epitaMarkup = ?, roundingType = ?, valorFrete = ?, 
+        epitaMarkup = ?, roundingType = ?, valorFrete = ?, locked = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
     
     const result = updateStmt.run(
       fornecedor, impostoEntrada, xapuriMarkup, epitaMarkup, 
-      roundingType, valorFrete, id
+      roundingType, valorFrete, locked ? 1 : 0, id
     );
     
     if (result.changes === 0) {

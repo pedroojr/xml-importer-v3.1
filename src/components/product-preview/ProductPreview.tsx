@@ -110,14 +110,12 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   }, [hiddenItems]);
 
   useEffect(() => {
-    localStorage.setItem(scopedKey('xapuriMarkup'), xapuriMarkup.toString());
-    localStorage.setItem(scopedKey('epitaMarkup'), epitaMarkup.toString());
-    localStorage.setItem(scopedKey('roundingType'), roundingType);
+    // Persistir apenas estados locais deste componente para não sobrescrever
+    // valores escopados de outras notas vindos do componente pai
     localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
-    localStorage.setItem(scopedKey('impostoEntrada'), impostoEntrada.toString());
     localStorage.setItem(scopedKey('valorFrete'), valorFrete.toString());
     localStorage.setItem(scopedKey('locked'), JSON.stringify(locked));
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, valorFrete, locked, scopeId]);
+  }, [compactMode, valorFrete, locked, scopeId]);
 
   // Persistir no servidor quando alterar e não estiver trancado
   useEffect(() => {
@@ -130,6 +128,7 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
           epitaMarkup,
           roundingType,
           valorFrete,
+          locked: false,
         });
       } catch (err) {
         console.error('Erro ao persistir NFE:', err);
@@ -137,6 +136,26 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     }, 400);
     return () => clearTimeout(timeout);
   }, [nfeId, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, locked]);
+
+  // Quando o usuário tranca, persistir imediatamente como aprovado
+  useEffect(() => {
+    if (!nfeId) return;
+    const persist = async () => {
+      try {
+        await nfeAPI.update(nfeId, {
+          impostoEntrada,
+          xapuriMarkup,
+          epitaMarkup,
+          roundingType,
+          valorFrete,
+          locked,
+        });
+      } catch (err) {
+        console.error('Erro ao salvar estado de lock:', err);
+      }
+    };
+    persist();
+  }, [locked]);
 
   const handleMarkupChange = (xapuri: number, epita: number, rounding: RoundingType) => {
     onXapuriMarkupChange(xapuri);

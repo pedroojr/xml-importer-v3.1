@@ -77,16 +77,23 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="xapuri-markup"
               type="number"
               value={xapuriMarkup}
-              onChange={(e) => onXapuriMarkupChange(Number(e.target.value))}
+              onChange={(e) => { if (!locked) onXapuriMarkupChange(Number(e.target.value)); }}
               className="w-full min-w-[80px] border-blue-200 focus:border-blue-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 120"
               disabled={locked}
+              readOnly={locked}
             />
             {xapuriSuggestedMarkup && (
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-600 cursor-pointer select-none" onClick={() => onXapuriMarkupChange(xapuriSuggestedMarkup)}>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-600 cursor-pointer select-none"
+                onClick={() => { if (!locked) onXapuriMarkupChange(xapuriSuggestedMarkup); }}
+                disabled={locked}
+                aria-disabled={locked}
+              >
                 Sug: {xapuriSuggestedMarkup}%
-              </span>
+              </button>
             )}
           </div>
         </div>
@@ -102,14 +109,15 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="epita-markup"
               type="number"
               value={epitaMarkup}
-              onChange={(e) => onEpitaMarkupChange(Number(e.target.value))}
+              onChange={(e) => { if (!locked) onEpitaMarkupChange(Number(e.target.value)); }}
               className="w-full min-w-[80px] border-emerald-200 focus:border-emerald-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 130"
               disabled={locked}
+              readOnly={locked}
             />
             {epitaSuggestedMarkup && (
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-green-600 cursor-pointer select-none" onClick={() => onEpitaMarkupChange(epitaSuggestedMarkup)}>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-green-600 cursor-pointer select-none" onClick={() => { if (!locked) onEpitaMarkupChange(epitaSuggestedMarkup); }}>
                 Sug: {epitaSuggestedMarkup}%
               </span>
             )}
@@ -139,13 +147,14 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               id="imposto-entrada"
               type="number"
               value={impostoEntrada}
-              onChange={(e) => onImpostoEntradaChange(Number(e.target.value))}
+              onChange={(e) => { if (!locked) onImpostoEntradaChange(Number(e.target.value)); }}
               className="w-full min-w-[80px] border-amber-200 focus:border-amber-400 px-2 py-1 rounded text-sm"
               min="0"
               max="100"
               step="0.5"
               placeholder="Ex: 12"
               disabled={locked}
+              readOnly={locked}
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-amber-600">%</span>
           </div>
@@ -183,12 +192,13 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
             id="valor-frete"
             type="number"
             value={valorFrete}
-            onChange={e => onValorFreteChange(Number(e.target.value))}
+            onChange={e => { if (!locked) onValorFreteChange(Number(e.target.value)); }}
             className="w-full min-w-[80px] border-indigo-200 focus:border-indigo-400 px-2 py-1 rounded text-sm"
             min="0"
             step="0.01"
             placeholder="Ex: 100,00"
             disabled={locked}
+            readOnly={locked}
           />
         </div>
       </div>

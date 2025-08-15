@@ -157,6 +157,50 @@ const Index = () => {
     setIsEditingBrand(false);
     setXmlContentForDataSystem(null);
     setCurrentTab("upload");
+
+    // Escopo por nota para chaves locais
+    const key = (k: string) => (nfe.numero ? `${nfe.numero}:${k}` : k);
+
+    // Carregar preferências: se existir no localStorage, usa; caso contrário, aplica valor vindo da API e persiste localmente
+    const localX = localStorage.getItem(key('xapuriMarkup'));
+    if (localX) {
+      setXapuriMarkup(parseInt(localX));
+    } else if (typeof nfe.xapuriMarkup === 'number') {
+      setXapuriMarkup(nfe.xapuriMarkup);
+      localStorage.setItem(key('xapuriMarkup'), String(nfe.xapuriMarkup));
+    }
+
+    const localE = localStorage.getItem(key('epitaMarkup'));
+    if (localE) {
+      setEpitaMarkup(parseInt(localE));
+    } else if (typeof nfe.epitaMarkup === 'number') {
+      setEpitaMarkup(nfe.epitaMarkup);
+      localStorage.setItem(key('epitaMarkup'), String(nfe.epitaMarkup));
+    }
+
+    const localR = localStorage.getItem(key('roundingType')) as RoundingType | null;
+    if (localR) {
+      setRoundingType(localR);
+    } else if (typeof nfe.roundingType === 'string' && nfe.roundingType.length > 0) {
+      setRoundingType(nfe.roundingType as RoundingType);
+      localStorage.setItem(key('roundingType'), nfe.roundingType);
+    }
+
+    const localI = localStorage.getItem(key('impostoEntrada'));
+    if (localI) {
+      setImpostoEntrada(parseInt(localI));
+    } else if (typeof nfe.impostoEntrada === 'number') {
+      setImpostoEntrada(nfe.impostoEntrada);
+      localStorage.setItem(key('impostoEntrada'), String(nfe.impostoEntrada));
+    }
+
+    // Valor do frete é lido dentro do ProductPreview a partir do localStorage; garante persistência local com dado do servidor
+    if (typeof nfe.valorFrete === 'number') {
+      const localFrete = localStorage.getItem(key('valorFrete'));
+      if (!localFrete) {
+        localStorage.setItem(key('valorFrete'), String(nfe.valorFrete));
+      }
+    }
   };
 
   const handleXapuriMarkupChange = (value: number) => {
