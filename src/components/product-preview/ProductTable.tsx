@@ -455,21 +455,21 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const calculateAverageDiscountPercent = () => {
     if (products.length === 0) return 0;
     
-    const totalOriginalPrice = products.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = products.reduce((acc, p) => acc + p.discount, 0);
+    const totalOriginalPrice = products.reduce((acc, p) => acc + (Number(p.totalPrice) || 0), 0);
+    const totalDiscount = products.reduce((acc, p) => acc + (Number(p.discount) || 0), 0);
     
     return totalOriginalPrice > 0 ? (totalDiscount / totalOriginalPrice) * 100 : 0;
   };
 
   // Calcular a quantidade total de unidades
   const calculateTotalQuantity = (prods: Product[]) => {
-    return prods.reduce((acc, p) => acc + p.quantity, 0);
+    return prods.reduce((acc, p) => acc + (Number(p.quantity) || 0), 0);
   };
 
   // Função para calcular o valor líquido total (Valor Total - Desconto Total)
   const calculateTotalNetValue = (prods: Product[]) => {
-    const totalValue = prods.reduce((acc, p) => acc + p.totalPrice, 0);
-    const totalDiscount = prods.reduce((acc, p) => acc + p.discount, 0);
+    const totalValue = prods.reduce((acc, p) => acc + (Number(p.totalPrice) || 0), 0);
+    const totalDiscount = prods.reduce((acc, p) => acc + (Number(p.discount) || 0), 0);
     return totalValue - totalDiscount;
   };
 
@@ -632,9 +632,9 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               const custoComDesconto = calculateCustoComDesconto(product);
               
               // Calcular o custo líquido (Custo c/ desconto + Imposto de Entrada)
-              const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
+              const custoLiquido = calculateCustoLiquido(product, Number(impostoEntrada) || 0);
               // Novo: custo líquido + frete proporcional
-              const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
+              const custoLiquidoComFrete = (Number(custoLiquido) || 0) + (Number(product.freteProporcional) || 0);
               
               // Calcular preços de venda com base no custo líquido + frete proporcional
               const xapuriPrice = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType);
@@ -699,22 +699,22 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       product[column.id as keyof Product];
                     if (column.id === 'xapuriPrice') {
                       const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
+                      const custoLiquido = calculateCustoLiquido(product, Number(impostoEntrada) || 0);
+                      const custoLiquidoComFrete = (Number(custoLiquido) || 0) + (Number(product.freteProporcional) || 0);
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, xapuriMarkup), roundingType) + custoExtra;
                     }
                     if (column.id === 'epitaPrice') {
                       const custoExtra = parseFloat(custoExtraMap[product.codigo] || '0') || 0;
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const custoLiquidoComFrete = custoLiquido + (product.freteProporcional || 0);
+                      const custoLiquido = calculateCustoLiquido(product, Number(impostoEntrada) || 0);
+                      const custoLiquidoComFrete = (Number(custoLiquido) || 0) + (Number(product.freteProporcional) || 0);
                       value = roundPrice(calculateSalePrice({ ...product, netPrice: custoLiquidoComFrete }, epitaMarkup), roundingType) + custoExtra;
                     }
                     if (column.id === 'size') value = tamanho;
                     if (column.id === 'netPrice') {
                       // Custo Líquido = custo unitário + frete proporcional
-                      const custoLiquido = calculateCustoLiquido(product, impostoEntrada);
-                      const freteProporcional = product.freteProporcional || 0;
-                      value = custoLiquido + freteProporcional;
+                      const custoLiquido = calculateCustoLiquido(product, Number(impostoEntrada) || 0);
+                      const freteProporcional = Number(product.freteProporcional) || 0;
+                      value = (Number(custoLiquido) || 0) + freteProporcional;
                     }
 
                     return (

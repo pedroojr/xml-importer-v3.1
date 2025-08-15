@@ -48,8 +48,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const [valorFrete, setValorFrete] = useState<number>(0);
 
   // Calculate suggested markups
-  const totalBruto = products.reduce((sum, p) => sum + p.totalPrice, 0);
-  const totalLiquido = products.reduce((sum, p) => sum + p.netPrice, 0);
+  const totalBruto = products.reduce((sum, p) => sum + (Number(p.totalPrice) || 0), 0);
+  const totalLiquido = products.reduce((sum, p) => sum + (Number(p.netPrice) || 0), 0);
   
   // Markup sugerido para Xapuri (ajustando para custo líquido)
   const precoVendaXapuri = totalBruto * 2.2;
@@ -179,16 +179,16 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const effectiveHiddenItems = onToggleVisibility ? hiddenItems : localHiddenItems;
 
   // Calcular frete proporcional para cada item
-  const fretesProporcionais = calcularFreteProporcional(products, valorFrete, impostoEntrada);
+  const fretesProporcionais = calcularFreteProporcional(products, Number(valorFrete) || 0, Number(impostoEntrada) || 0);
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
   const nfeId = invoiceNumber || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
   const productsWithFrete = products.map((p, idx) => ({
     ...p,
     nfeId,
-    freteProporcional: fretesProporcionais[idx] || 0,
+    freteProporcional: Number(fretesProporcionais[idx]) || 0,
     // Custo final unitário: custo líquido unitário + frete proporcional unitário
-    netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
+    netPrice: (Number(p.netPrice) || 0) + (Number(fretesProporcionais[idx]) || 0)
   }));
 
   return (

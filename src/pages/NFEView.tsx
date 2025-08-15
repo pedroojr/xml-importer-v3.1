@@ -171,7 +171,7 @@ const NFEView = () => {
           <div className="text-sm text-blue-700 space-y-1">
             <p>NFE ID: {nfe.id}</p>
             <p>Produtos carregados: {totalProdutos}</p>
-            <p>Valor total produtos: R$ {valorTotalProdutos.toFixed(2)}</p>
+            <p>Valor total produtos: R$ {(Number(valorTotalProdutos) || 0).toFixed(2)}</p>
             <p>Quantidade total: {quantidadeTotal}</p>
             <p>Status: {loading ? 'Carregando...' : error ? 'Erro' : 'OK'}</p>
           </div>
@@ -284,9 +284,9 @@ const NFEView = () => {
                       )}
                     </div>
                     <div className="text-right ml-4">
-                      <p className="font-medium">{formatCurrency(produto.valorTotal || 0)}</p>
+                      <p className="font-medium">{formatCurrency(Number(produto.valorTotal) || 0)}</p>
                       <p className="text-sm text-gray-500">
-                        {produto.quantidade || 0} x {formatCurrency(produto.valorUnitario || 0)}
+                        {(Number(produto.quantidade) || 0)} x {formatCurrency(Number(produto.valorUnitario) || 0)}
                       </p>
                       <p className="text-xs text-gray-400">
                         Unidade: {produto.unidade || 'N/A'}
