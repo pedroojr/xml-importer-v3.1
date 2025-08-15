@@ -316,9 +316,9 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
                   if (!nfeId) return;
                   // Monta payload com preços por item já calculados na tabela
                   const payloadProdutos = productsWithFrete.map((p) => {
-                    // custo líquido final = custo com impostoEntrada + frete proporcional (unitário)
-                    const custoComImposto = (p.unitPrice || 0) * (1 + (impostoEntrada || 0) / 100);
-                    const custoLiquidoFinal = custoComImposto + (p.freteProporcional || 0);
+                    // custo líquido final = custo com desconto * (1+imposto) + frete proporcional
+                    const custoBase = calculateCustoLiquido(p, impostoEntrada);
+                    const custoLiquidoFinal = custoBase + (p.freteProporcional || 0);
                     const produtoParaPreco = { ...p, netPrice: custoLiquidoFinal } as any;
                     const xap = roundPrice(calculateSalePrice(produtoParaPreco, xapuriMarkup), roundingType);
                     const ep = roundPrice(calculateSalePrice(produtoParaPreco, epitaMarkup), roundingType);

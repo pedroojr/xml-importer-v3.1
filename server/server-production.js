@@ -380,15 +380,22 @@ app.put('/api/nfes/:id', (req, res) => {
           impostoEntrada, xapuriMarkup, epitaMarkup
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
+      const hasRecent = db.prepare(`
+        SELECT 1 FROM precos WHERE codigo = ? AND nfeId = ? AND abs(strftime('%s','now') - strftime('%s', createdAt)) < 60 LIMIT 1
+      `);
       const updateProdutoPreco = db.prepare(`
         UPDATE produtos SET custoLiquido = ?, precoXapuri = ?, precoEpita = ?
         WHERE nfeId = ? AND codigo = ?
       `);
       produtos.forEach(p => {
-        insertPreco.run(
-          p.codigo, p.descricao, id, p.valorUnitario || 0, p.netPrice || 0,
-          p.xapuriPrice || 0, p.epitaPrice || 0, newImpostoEntrada, newXapuriMarkup, newEpitaMarkup
-        );
+        // Evitar duplicados em sequência (mesmo código/NFE dentro de 60s)
+        const recent = hasRecent.get(p.codigo, id);
+        if (!recent) {
+          insertPreco.run(
+            p.codigo, p.descricao, id, p.valorUnitario || 0, p.netPrice || 0,
+            p.xapuriPrice || 0, p.epitaPrice || 0, newImpostoEntrada, newXapuriMarkup, newEpitaMarkup
+          );
+        }
         updateProdutoPreco.run(
           p.custoLiquido || p.netPrice || 0,
           p.xapuriPrice || 0,
