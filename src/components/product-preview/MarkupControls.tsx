@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Lock, Unlock } from "lucide-react";
 
 interface MarkupControlsProps {
   xapuriMarkup: number;
@@ -19,6 +19,8 @@ interface MarkupControlsProps {
   epitaSuggestedMarkup?: number;
   valorFrete: number;
   onValorFreteChange: (value: number) => void;
+  locked?: boolean;
+  onToggleLock?: () => void;
 }
 
 export const MarkupControls: React.FC<MarkupControlsProps> = ({
@@ -34,9 +36,23 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
   epitaSuggestedMarkup,
   valorFrete,
   onValorFreteChange,
+  locked = false,
+  onToggleLock,
 }) => {
   return (
     <div className="p-2 border-b bg-white rounded shadow-sm">
+      <div className="flex items-center justify-end mb-2">
+        <button
+          type="button"
+          onClick={onToggleLock}
+          className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border ${locked ? 'text-red-700 border-red-300 bg-red-50' : 'text-slate-700 border-slate-300 bg-slate-50'}`}
+          aria-pressed={locked}
+          title={locked ? 'Destravar configurações' : 'Travar configurações desta nota'}
+        >
+          {locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+          {locked ? 'Trancado' : 'Destrancado'}
+        </button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 w-full items-end">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -65,6 +81,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               className="w-full min-w-[80px] border-blue-200 focus:border-blue-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 120"
+              disabled={locked}
             />
             {xapuriSuggestedMarkup && (
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-blue-600 cursor-pointer select-none" onClick={() => onXapuriMarkupChange(xapuriSuggestedMarkup)}>
@@ -89,6 +106,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               className="w-full min-w-[80px] border-emerald-200 focus:border-emerald-400 pr-16 px-2 py-1 rounded text-sm"
               step="5"
               placeholder="Ex: 130"
+              disabled={locked}
             />
             {epitaSuggestedMarkup && (
               <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-green-600 cursor-pointer select-none" onClick={() => onEpitaMarkupChange(epitaSuggestedMarkup)}>
@@ -127,6 +145,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               max="100"
               step="0.5"
               placeholder="Ex: 12"
+              disabled={locked}
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-amber-600">%</span>
           </div>
@@ -140,6 +159,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               aria-pressed={roundingType === '90'}
               className={`h-8 px-2 text-xs rounded border font-medium transition min-w-[60px] focus:outline-none focus:ring-2 focus:ring-blue-400 ${roundingType === '90' ? 'bg-blue-600 text-white border-blue-700 shadow' : 'border-gray-300 bg-white text-gray-800'}`}
               onClick={() => onRoundingChange(roundingType === '90' ? 'none' : '90')}
+              disabled={locked}
             >
               R$ 0,90
             </button>
@@ -148,6 +168,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
               aria-pressed={roundingType === '50'}
               className={`h-8 px-2 text-xs rounded border font-medium transition min-w-[60px] focus:outline-none focus:ring-2 focus:ring-blue-400 ${roundingType === '50' ? 'bg-blue-600 text-white border-blue-700 shadow' : 'border-gray-300 bg-white text-gray-800'}`}
               onClick={() => onRoundingChange(roundingType === '50' ? 'none' : '50')}
+              disabled={locked}
             >
               R$ 0,50
             </button>
@@ -167,6 +188,7 @@ export const MarkupControls: React.FC<MarkupControlsProps> = ({
             min="0"
             step="0.01"
             placeholder="Ex: 100,00"
+            disabled={locked}
           />
         </div>
       </div>

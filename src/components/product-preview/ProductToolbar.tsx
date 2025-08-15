@@ -34,6 +34,8 @@ interface ProductToolbarProps {
   filteredItems: number;
   valorFrete: number;
   onValorFreteChange: (value: number) => void;
+  locked?: boolean;
+  onToggleLock?: () => void;
 }
 
 export const ProductToolbar: React.FC<ProductToolbarProps> = ({
@@ -57,6 +59,8 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
   filteredItems,
   valorFrete,
   onValorFreteChange,
+  locked,
+  onToggleLock,
 }) => {
   return (
     <div className="w-full p-4 border-b bg-white">
@@ -75,6 +79,8 @@ export const ProductToolbar: React.FC<ProductToolbarProps> = ({
             epitaSuggestedMarkup={epitaSuggestedMarkup}
             valorFrete={valorFrete}
             onValorFreteChange={onValorFreteChange}
+            locked={locked}
+            onToggleLock={onToggleLock}
           />
         </div>
         <div className="flex items-center gap-4 w-full lg:w-auto">

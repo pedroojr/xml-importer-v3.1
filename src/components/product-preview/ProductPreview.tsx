@@ -11,6 +11,7 @@ import { ProductAnalysisTabs } from './ProductAnalysisTabs';
 import { ExportOptions } from './ExportOptions';
 import { ProductImageModal } from './ProductImageModal';
 import { useImpostoEntrada } from '../../hooks/useImpostoEntrada';
+import { nfeAPI } from '@/services/api';
 
 interface ProductPreviewProps {
   products: Product[];
@@ -27,6 +28,7 @@ interface ProductPreviewProps {
   onEpitaMarkupChange: (value: number) => void;
   onRoundingTypeChange: (value: RoundingType) => void;
   invoiceNumber?: string; // usado para escopo das configurações por nota
+  nfeId?: string; // id da NFE para persistência no servidor
 }
 
 const ProductPreview: React.FC<ProductPreviewProps> = ({ 
@@ -43,7 +45,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   onXapuriMarkupChange,
   onEpitaMarkupChange,
   onRoundingTypeChange,
-  invoiceNumber
+  invoiceNumber,
+  nfeId
 }) => {
   // Escopo por nota: prioriza invoiceNumber, mas aceita qualquer identificador único que vier
   const scopeId = invoiceNumber || undefined;
@@ -54,6 +57,10 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   const [valorFrete, setValorFrete] = useState<number>(() => {
     const saved = localStorage.getItem(scopedKey('valorFrete'));
     return saved ? Number(saved) : 0;
+  });
+  const [locked, setLocked] = useState<boolean>(() => {
+    const saved = localStorage.getItem(scopedKey('locked'));
+    return saved ? JSON.parse(saved) : false;
   });
 
   // Calculate suggested markups
@@ -109,16 +116,27 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
     localStorage.setItem(scopedKey('compactMode'), JSON.stringify(compactMode));
     localStorage.setItem(scopedKey('impostoEntrada'), impostoEntrada.toString());
     localStorage.setItem(scopedKey('valorFrete'), valorFrete.toString());
-  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, valorFrete, scopeId]);
+    localStorage.setItem(scopedKey('locked'), JSON.stringify(locked));
+  }, [xapuriMarkup, epitaMarkup, roundingType, compactMode, impostoEntrada, valorFrete, locked, scopeId]);
 
+  // Persistir no servidor quando alterar e não estiver trancado
   useEffect(() => {
-    const savedColumnOrder = localStorage.getItem(scopedKey('columnOrder'));
-    if (savedColumnOrder) {
-      const orderMap = JSON.parse(savedColumnOrder) as Record<string, number>;
-      const newSortedColumns = [...columns].sort((a, b) => (orderMap[a.id] || a.order || 0) - (orderMap[b.id] || b.order || 0));
-      setSortedColumns(newSortedColumns);
-    }
-  }, [columns, scopeId]);
+    if (!nfeId || locked) return;
+    const timeout = setTimeout(async () => {
+      try {
+        await nfeAPI.update(nfeId, {
+          impostoEntrada,
+          xapuriMarkup,
+          epitaMarkup,
+          roundingType,
+          valorFrete,
+        });
+      } catch (err) {
+        console.error('Erro ao persistir NFE:', err);
+      }
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [nfeId, impostoEntrada, xapuriMarkup, epitaMarkup, roundingType, valorFrete, locked]);
 
   const handleMarkupChange = (xapuri: number, epita: number, rounding: RoundingType) => {
     onXapuriMarkupChange(xapuri);
@@ -191,11 +209,11 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
   // Calcular frete proporcional para cada item
   const fretesProporcionais = calcularFreteProporcional(products, valorFrete, impostoEntrada);
   // Adiciona o campo nfeId para cada produto (usando invoiceNumber ou um valor fixo se não houver)
-  const nfeId = scopeId || 'nfe-id-unico';
+  const nfeIdForProducts = scopeId || 'nfe-id-unico';
   // Atualizar produtos com frete proporcional
   const productsWithFrete = products.map((p, idx) => ({
     ...p,
-    nfeId,
+    nfeId: nfeIdForProducts,
     freteProporcional: fretesProporcionais[idx] || 0,
     // Custo final unitário: custo líquido unitário + frete proporcional unitário
     netPrice: (p.netPrice || 0) + (fretesProporcionais[idx] || 0)
@@ -234,6 +252,8 @@ const ProductPreview: React.FC<ProductPreviewProps> = ({
               filteredItems={products.length - effectiveHiddenItems.size}
               valorFrete={valorFrete}
               onValorFreteChange={setValorFrete}
+              locked={locked}
+              onToggleLock={() => setLocked(prev => !prev)}
             />
 
             <ProductTable

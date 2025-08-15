@@ -401,6 +401,7 @@ const Index = () => {
               onEpitaMarkupChange={handleEpitaMarkupChange}
               onRoundingTypeChange={handleRoundingTypeChange}
               invoiceNumber={invoiceNumber}
+              nfeId={currentNFeId || undefined}
             />
           </div>
         )}
