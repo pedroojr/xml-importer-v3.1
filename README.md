@@ -1,4 +1,6 @@
-# XML Importer v3.1 - Sistema Completo com Banco de Dados
+# XML Importer v3.1
+
+<!-- Build trigger: 2025-08-16 15:47 -->
 
 Sistema completo para importação e gerenciamento de produtos via XML de NF-e, com banco de dados SQLite e acesso remoto.
 
