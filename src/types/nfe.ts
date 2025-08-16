@@ -66,6 +66,10 @@ export interface NFE {
   brandName?: string;
   invoiceNumber?: string;
   impostoEntrada: number;
+  xapuriMarkup?: number;
+  epitaMarkup?: number;
+  roundingType?: string;
+  locked?: boolean;
 }
 
 export interface NFEItem {

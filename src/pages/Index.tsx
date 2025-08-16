@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Info, History, Edit2, Trash2, UploadCloud, Search, FileText as FileTextIcon } from "lucide-react";
+import { Info, History, Edit2, Trash2, UploadCloud, Search, FileText as FileTextIcon, BarChart3, TrendingUp, Package, DollarSign, Calendar, ArrowRight, Zap, Database, Settings } from "lucide-react";
 import FileUpload from "@/components/FileUpload";
 import { SefazIntegration } from "@/components/SefazIntegration";
 import FileUploadPDF from "@/components/FileUploadPDF";
@@ -27,6 +27,7 @@ const Index = () => {
   const [pdfItems, setPdfItems] = useState<any[]>([]);
   const [hiddenItems, setHiddenItems] = useState<Set<number>>(new Set());
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
   const scopedKey = (key: string) => ((currentNFeId || invoiceNumber) ? `${(currentNFeId || invoiceNumber)}:${key}` : key);
 
   const [xapuriMarkup, setXapuriMarkup] = useState(() => {
@@ -59,6 +60,67 @@ const Index = () => {
   const [activeTabId, setActiveTabId] = useState<string | null>(() => localStorage.getItem('nfeActiveTabId'));
 
   const { savedNFEs, saveNFE, removeNFE } = useNFEStorage();
+
+  // Estatísticas para o dashboard
+  const getStats = () => {
+    const today = new Date().toDateString();
+    const todayNFEs = savedNFEs.filter(nfe => new Date(nfe.data).toDateString() === today);
+    const totalValue = savedNFEs.reduce((sum, nfe) => sum + (nfe.valor || 0), 0);
+    const totalProducts = savedNFEs.reduce((sum, nfe) => sum + (nfe.itens || 0), 0);
+    
+    return {
+      todayCount: todayNFEs.length,
+      totalCount: savedNFEs.length,
+      totalValue: totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      totalProducts,
+      pendingApproval: savedNFEs.filter(nfe => !nfe.locked).length
+    };
+  };
+
+  // Busca global
+  const handleGlobalSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      // Implementar busca em NFEs e produtos
+      console.log('Buscando por:', query);
+    }
+  };
+
+  // Ações rápidas
+  const quickActions = [
+    {
+      title: "Importar XML",
+      description: "Upload direto de arquivo XML",
+      icon: UploadCloud,
+      action: () => setCurrentTab("upload"),
+      variant: "default" as const,
+      color: "bg-blue-500 hover:bg-blue-600"
+    },
+    {
+      title: "Consultar SEFAZ",
+      description: "Buscar nota por chave de acesso",
+      icon: Search,
+      action: () => setCurrentTab("sefaz"),
+      variant: "outline" as const,
+      color: "bg-green-500 hover:bg-green-600"
+    },
+    {
+      title: "Upload PDF",
+      description: "Extrair produtos de pedido PDF",
+      icon: FileTextIcon,
+      action: () => setCurrentTab("pdf"),
+      variant: "outline" as const,
+      color: "bg-purple-500 hover:bg-purple-600"
+    },
+    {
+      title: "Ver Produtos",
+      description: "Gerenciar produtos importados",
+      icon: Package,
+      action: () => window.location.href = '/produtos',
+      variant: "outline" as const,
+      color: "bg-orange-500 hover:bg-orange-600"
+    }
+  ];
 
   const extractNFeInfo = (xmlDoc: Document) => {
     const nfeNode = xmlDoc.querySelector('NFe');
@@ -399,6 +461,143 @@ const Index = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Busca Global */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar NFEs, produtos, fornecedores..."
+                  value={searchQuery}
+                  onChange={(e) => handleGlobalSearch(e.target.value)}
+                  className="pl-10 h-12 text-base"
+                />
+              </div>
+
+              {/* Dashboard Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Hoje
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-900">{getStats().todayCount}</div>
+                    <p className="text-xs text-blue-600">NFEs importadas</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Total
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-900">{getStats().totalCount}</div>
+                    <p className="text-xs text-green-600">NFEs no sistema</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-700 flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Valor Total
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-bold text-purple-900">{getStats().totalValue}</div>
+                    <p className="text-xs text-purple-600">Valor das NFEs</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Pendentes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-900">{getStats().pendingApproval}</div>
+                    <p className="text-xs text-orange-600">Aguardando aprovação</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Ações Rápidas */}
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-500" />
+                  Ações Rápidas
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {quickActions.map((action, index) => (
+                    <Card 
+                      key={index} 
+                      className="hover:shadow-md transition-all duration-200 cursor-pointer border-slate-200 hover:border-slate-300"
+                      onClick={action.action}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center mx-auto mb-3`}>
+                          <action.icon className="h-6 w-6 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-slate-900 mb-1">{action.title}</h3>
+                        <p className="text-xs text-slate-600">{action.description}</p>
+                        <ArrowRight className="h-4 w-4 text-slate-400 mx-auto mt-2" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Histórico de Atividades */}
+              {savedNFEs.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    <History className="h-5 w-5 text-slate-600" />
+                    Atividades Recentes
+                  </h2>
+                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div className="space-y-3 max-h-48 overflow-y-auto">
+                      {savedNFEs.slice(0, 5).map((nfe, index) => (
+                        <div key={nfe.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full ${nfe.locked ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                            <div>
+                              <div className="font-medium text-slate-900">{nfe.fornecedor}</div>
+                              <div className="text-sm text-slate-600">NF-e {nfe.numero} • {nfe.itens} itens</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">
+                              {new Date(nfe.data).toLocaleDateString('pt-BR')}
+                            </span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => handleLoadNFe(nfe)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {savedNFEs.length > 5 && (
+                      <div className="mt-4 pt-3 border-t border-slate-200 text-center">
+                        <Button variant="outline" size="sm" onClick={() => window.location.href = '/notas'}>
+                          Ver Todas as Notas
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
                 <div className="w-full">
