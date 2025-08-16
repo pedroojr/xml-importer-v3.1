@@ -528,31 +528,7 @@ const Index = () => {
                 </Card>
               </div>
 
-              {/* Ações Rápidas */}
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-yellow-500" />
-                  Ações Rápidas
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {quickActions.map((action, index) => (
-                    <Card 
-                      key={index} 
-                      className="hover:shadow-md transition-all duration-200 cursor-pointer border-slate-200 hover:border-slate-300"
-                      onClick={action.action}
-                    >
-                      <CardContent className="p-4 text-center">
-                        <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center mx-auto mb-3`}>
-                          <action.icon className="h-6 w-6 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-slate-900 mb-1">{action.title}</h3>
-                        <p className="text-xs text-slate-600">{action.description}</p>
-                        <ArrowRight className="h-4 w-4 text-slate-400 mx-auto mt-2" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Histórico de Atividades */}
               {savedNFEs.length > 0 && (

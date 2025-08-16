@@ -6,7 +6,7 @@ const Navbar = () => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/', label: 'Menu Inicial' },
+    { path: '/', label: 'Notas' },
     { path: '/notas', label: 'Notas' },
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/produtos', label: 'Produtos' },
@@ -50,4 +50,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; 
+export default Navbar;
